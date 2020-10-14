@@ -175,7 +175,7 @@ def create_exp_name(exp_prefix, exp_id=0, seed=0):
     """
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    return "%s_%s_%04d--s-%d" % (exp_prefix, timestamp, exp_id, seed)
+    return "%s_exp_%04d_s_%d" % (timestamp, exp_id, seed)
 
 
 def create_log_dir(
@@ -200,7 +200,7 @@ def create_log_dir(
     if base_log_dir is None:
         base_log_dir = conf.LOCAL_LOG_DIR
     if include_exp_prefix_sub_dir:
-        log_dir = osp.join(base_log_dir, exp_prefix.replace("_", "-"), exp_name)
+        log_dir = osp.join(base_log_dir, exp_prefix, exp_name)
     else:
         log_dir = osp.join(base_log_dir, exp_name)
     if osp.exists(log_dir):

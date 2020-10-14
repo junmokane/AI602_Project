@@ -151,7 +151,7 @@ if __name__ == "__main__":
         load_buffer=True,
         env_name=args.env,
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=10,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
@@ -177,7 +177,21 @@ if __name__ == "__main__":
 
         ),
     )
-    rand = np.random.randint(0, 100000)
-    setup_logger(os.path.join('BEAR_launch', str(rand)), variant=variant, base_log_dir='./data')
+
+    setup_logger(exp_prefix='bear-' + args.env,
+                 variant=variant,
+                 text_log_file="debug.log",
+                 variant_log_file="variant.json",
+                 tabular_log_file="progress.csv",
+                 snapshot_mode="gap_and_last",
+                 snapshot_gap=2,
+                 log_tabular_only=False,
+                 log_dir=None,
+                 git_infos=None,
+                 script_name=None,
+                 # **create_log_dir_kwargs
+                 base_log_dir='./data',
+                 exp_id=3,
+                 seed=0)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
