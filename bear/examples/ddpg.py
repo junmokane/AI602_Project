@@ -98,4 +98,5 @@ if __name__ == "__main__":
     )
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     setup_logger('name-of-experiment', variant=variant)
+    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

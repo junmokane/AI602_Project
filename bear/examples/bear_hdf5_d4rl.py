@@ -1,3 +1,6 @@
+import os, sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
+
 from gym.envs.mujoco import HalfCheetahEnv, HopperEnv, AntEnv, Walker2dEnv
 
 import rlkit.torch.pytorch_util as ptu
@@ -11,7 +14,7 @@ from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 import numpy as np
 
-import h5py, argparse, os
+import h5py, argparse
 import gym
 import d4rl
 
@@ -176,5 +179,5 @@ if __name__ == "__main__":
     )
     rand = np.random.randint(0, 100000)
     setup_logger(os.path.join('BEAR_launch', str(rand)), variant=variant, base_log_dir='./data')
-    ptu.set_gpu_mode(False)  # optionally set the GPU (default=False)
+    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

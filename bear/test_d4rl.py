@@ -7,9 +7,11 @@ env = gym.make('maze2d-large-v1')
 
 # d4rl abides by the OpenAI gym interface
 obs = env.reset()
-#env.render()
-obs, rew, done, info = env.step(env.action_space.sample())
-#env.render()
+env.render()
+while True:
+
+    obs, rew, done, info = env.step(env.action_space.sample())
+    env.render()
 
 
 # Each task is associated with a dataset
