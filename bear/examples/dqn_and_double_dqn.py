@@ -1,7 +1,9 @@
 """
 Run DQN on grid world.
 """
-
+import sys
+import os
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 import gym
 from torch import nn as nn
 
@@ -76,7 +78,7 @@ def experiment(variant):
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     variant = dict(
-        algorithm="SAC",
+        algorithm="DQN",
         version="normal",
         layer_size=256,
         replay_buffer_size=int(1E6),

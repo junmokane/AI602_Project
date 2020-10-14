@@ -68,6 +68,7 @@ class DDPGTrainer(TorchTrainer):
             lr=self.policy_learning_rate,
         )
 
+        self.discrete = False
         self.eval_statistics = OrderedDict()
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
