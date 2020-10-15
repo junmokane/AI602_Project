@@ -2,6 +2,7 @@
 *.json
 *.csv
 *.bashrc
+bear/test_seungjae.py
 
 
 # Byte-compiled / optimized / DLL files
