@@ -16,7 +16,54 @@ class Dummy(nn.Module):
         return self.lr3(x)
 
 
+class AE(nn.Module):
+    def __init__(self):
+        super(AE, self).__init__()
+        self.encoder = nn.Sequential(nn.Linear(2, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 1))
+        self.decoder = nn.Sequential(nn.Linear(1, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 2))
+
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+class RaPP(nn.Module):
+    def __init__(self):
+        super(RaPP, self).__init__()
+        self.enc_layer_list = [nn.Linear(2, 8),
+                               nn.ReLU(True),
+                                nn.Linear(8, 8),
+                                nn.ReLU(True),
+                                nn.Linear(8, 8),
+                                nn.ReLU(True),
+                                nn.Linear(8, 1)
+                               ]
+        self.encoder = nn.Sequential(*self.enc_layer_list)
+        self.decoder = nn.Sequential(nn.Linear(1, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 8),
+                                     nn.ReLU(True),
+                                     nn.Linear(8, 2))
+
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+
 if __name__ == "__main__":
     toy = torch.zeros(100, 2).cuda()
     model = Dummy().cuda()
     print("str : ", model)
+
+    mod = RaPP()
