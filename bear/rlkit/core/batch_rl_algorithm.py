@@ -177,9 +177,9 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
             # import ipdb; ipdb.set_trace()
             ## After epoch visualize
-            # if epoch % 50 == 0:
-            #     self._visualize(policy=True, num_dir=300, alpha=0.05, iter=epoch)
-            #     print ('Saved Plots ..... %d'.format(epoch))
+            #if (epoch + 1) % 5 == 0:
+            #    self._visualize(policy=True, num_dir=300, alpha=0.05, iter=epoch)
+            #    print('Saved Plots ..... %d'.format(epoch))
     
     def _eval_q_custom_policy(self, custom_model, q_function):
         data_batch = self.replay_buffer.random_batch(self.batch_size)
