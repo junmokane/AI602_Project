@@ -44,6 +44,9 @@ def plot_data(args):
     plt.show()
 
 if __name__ == "__main__":
+    # Run like this! 
+    # python scripts/plot.py ./data/bear-halfcheetah-medium-v0/ --f "trainer/QF1 Loss" "time/training (s)"
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=str,
                         help='path to the task directory')

@@ -132,11 +132,7 @@ def experiment(variant):
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(description='BEAR-runs')
-<<<<<<< HEAD
-    parser.add_argument("--env", type=str, default='hopper-random-v0')  # [TODO] Change this
-=======
     parser.add_argument("--env", type=str, default='hopper-medium-expert-v0')
->>>>>>> e1153a2d07adc907e16eea8eed38dd2ee14de8c2
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
@@ -156,11 +152,7 @@ if __name__ == "__main__":
         load_buffer=True,
         env_name=args.env,
         algorithm_kwargs=dict(
-<<<<<<< HEAD
-            num_epochs=500,  # [TODO] Change this 10 --> 500
-=======
             num_epochs=500,
->>>>>>> e1153a2d07adc907e16eea8eed38dd2ee14de8c2
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
@@ -193,11 +185,7 @@ if __name__ == "__main__":
                  variant_log_file="variant.json",
                  tabular_log_file="progress.csv",
                  snapshot_mode="gap_and_last",
-<<<<<<< HEAD
-                 snapshot_gap=100,  # [TODO] change 2 to 100
-=======
                  snapshot_gap=50,
->>>>>>> e1153a2d07adc907e16eea8eed38dd2ee14de8c2
                  log_tabular_only=False,
                  log_dir=None,
                  git_infos=None,
