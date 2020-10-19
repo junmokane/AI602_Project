@@ -1,0 +1,5 @@
+in the directory uncertainty_modeling, all algorithms should use the data
+from gen_data.py.
+
+in bear directory,
+python -m uncertainty_modeling.rapp.main_rapp

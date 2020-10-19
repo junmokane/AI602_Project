@@ -50,6 +50,7 @@ def load_hdf5(dataset, replay_buffer, max_size):
 
 def experiment(variant):
     eval_env = gym.make(variant['env_name'])
+    
     expl_env = eval_env
 
     obs_dim = expl_env.observation_space.low.size
