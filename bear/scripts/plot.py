@@ -26,27 +26,25 @@ def plot_data(args):
     style = args.s
     
     plt.style.use(style)
-
-    print(path, features)
-    path = path.rstrip('/').rstrip('\\')
-    csv_paths = glob.glob(f"{path}/**/progress.csv")
-    exp_names = [csv_path.split("/")[-2] for csv_path in csv_paths]
-    print(csv_paths, exp_names)
-
-    csv_slices = []
-    for csv_path in csv_paths:
-        csv = pd.read_csv(csv_path)
-        csv_slices.append(csv.loc[:, features])
-        del csv
+    features = features[0].split(",")
 
     for feature in features:
+        path = path.rstrip('/').rstrip('\\')
+        csv_paths = glob.glob(f"{path}/**/progress.csv")
+        exp_names = [csv_path.split("/")[-2] for csv_path in csv_paths]
+
+        csv_slices = []
+        for csv_path in csv_paths:
+            csv = pd.read_csv(csv_path)
+            csv_slices.append(csv.loc[:, [feature]])
+            del csv
+
         plot_one(exp_names, csv_slices, feature)
     plt.show()
 
+
 if __name__ == "__main__":
-    # Run like this! 
-    # python scripts/plot.py ./data/bear-halfcheetah-medium-v0/ --f "trainer/QF1 Loss" "time/training (s)"
-    
+    # To run, refer README.md
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=str,
                         help='path to the task directory')
@@ -55,5 +53,4 @@ if __name__ == "__main__":
     parser.add_argument('--s', type=str, default='ggplot',
                         help='Style of plots, Look at (https://matplotlib.org/3.1.1/gallery/style_sheets/style_sheets_reference.html)')
     args = parser.parse_args()
-    print(args)
     plot_data(args)
