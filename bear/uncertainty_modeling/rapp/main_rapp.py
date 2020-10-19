@@ -2,11 +2,11 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import matplotlib.pyplot as plt
-from model import RaPP
-from calc_uncertainty import get_diffs
 import random
 import math
-from gen_data import gen_datagrid, plot_meshgrid
+from uncertainty_modeling.gen_data import gen_datagrid, plot_meshgrid
+from uncertainty_modeling.rapp.calc_uncertainty import get_diffs
+from uncertainty_modeling.rapp.model import RaPP
 
 
 start, end, step = -1, 1, 101
