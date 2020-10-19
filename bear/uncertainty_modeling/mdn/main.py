@@ -76,7 +76,7 @@ if __name__ == "__main__":
     print("all data: ", meshgrid_data_lin.dtype, meshgrid_data_lin.shape, len(meshgrid_data_lin))
 
     # define model
-    model = MDN(x_dim=2, y_dim=1, k=5, h_dims=[32, 32])
+    model = MDN(x_dim=2, y_dim=1, k=1, h_dims=[32, 32])
     model = model.to(device)
     model.apply(init_weights)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
