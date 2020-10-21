@@ -3,7 +3,7 @@
 *.csv
 *.bashrc
 bear/test_seungjae.py
-
+*.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
