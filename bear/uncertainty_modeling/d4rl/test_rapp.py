@@ -1,52 +1,55 @@
-import gym
-import d4rl
 import torch
-from uncertainty_modeling.rapp.model import RaPP
-from uncertainty_modeling.rapp.calc_uncertainty import get_diffs
+import argparse
+import numpy as np
 import matplotlib.pyplot as plt
-import random
+from uncertainty_modeling.rapp.calc_uncertainty import get_diffs
 
 
-# from bear directory, python -m uncertainty_modeling.d4rl.test_rapp
-path = "/home/seungjae/Desktop/AI602/AI602_Project/bear/trained_hopper-medium-expert-v0_seungjae.pt"
-model = torch.load(path)
+def test_rapp_lunarlander(args):
+    fig =  plt.figure(figsize=(10, 7))
+    for i in range(4):
+        path = f"{args.p}_{i}.pt"
+        model = torch.load(path)
 
-environment = 'hopper-medium-expert-v0'
-exp_name = "seungjae"
+        extent = [-0.4, 0.4, 0.0, 1.5]
 
-env = gym.make(environment)
-print(f"ENV : {environment}, OBS_SPACE : {env.observation_space}, ACT_SPACE : {env.action_space}")
-dataset = env.get_dataset()
+        x = np.linspace(-0.4, 0.4, 101)
+        y = np.linspace(0.0, 1.5, 101)
+        xv, yv = np.meshgrid(x, y)
+        meshgrid_data = torch.from_numpy(np.dstack([xv, yv]))
 
-rapp = RaPP(env.observation_space.shape[0] + env.action_space.shape[0]).cuda()
+        meshgrid_data_lin = meshgrid_data.reshape((101*101, 2)).cuda()
 
-observations = torch.from_numpy(dataset['observations'])
-actions = torch.from_numpy(dataset['actions'])
-
-
-fig, axs = plt.subplots(nrows=7, ncols=2, figsize=(8, 8))
-for glo in range(10):
-    loc = random.randint(0, observations.size(0)-1)
-    test_data = torch.cat((observations[loc:loc+1], actions[loc:loc+1]), dim=1).cuda()
-    for i in range(2 * len(axs)):
-        ax = axs[i%7, i//7]
-        gap = torch.linspace(-5*test_data[:, i].mean(), 5*test_data[:, i].mean(), steps=11).unsqueeze(1).cuda()
-        plt_data = test_data.repeat(11, 1)
-        plt_data[:, i] += gap[:, 0]
-
-        dif = get_diffs(plt_data, rapp)
+        dif = get_diffs(meshgrid_data_lin, model)
         difs = torch.cat([torch.from_numpy(i) for i in dif], dim=-1).numpy()
+        
         dif = (difs**2).mean(axis=1)
-        dif -= dif[5]
+        dif = dif.reshape(101, 101)
 
-        if glo == 0:
-            title = f"{i}th dimension"
-            ax.set_title(title)
-            
-            if i == 0:
-                print(dif)
-        ax.plot(dif, alpha=0.5, color='b')
+        fig.add_subplot(2, 2, i+1)
+        im2 = plt.imshow(dif, extent=extent, origin="lower", cmap=plt.cm.jet, aspect='auto')
+        plt.colorbar()
+        plt.xlabel('horizontal displacement')
+        plt.ylabel('vertical displacement')
+        if i == 0:
+            plt.title('action 0: do nothing')
+        elif i == 1:
+            plt.title('action 1: fire left engine')
+        elif i == 2:
+            plt.title('action 2: fire main engine')
+        else:
+            plt.title('action 3: fire right engine')
+    
+    plt.tight_layout()
+    plt.show()
 
 
-plt.tight_layout()
-plt.show()
+if __name__ == "__main__":
+    # python -m uncertainty_modeling.d4rl.test_rapp --p "/home/seungjae/Desktop/AI602/AI602_Project/bear/trained_LunarLander-v2_seungjae_horizontal"
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--p', type=str,
+                        help='path')
+    args = parser.parse_args()
+    test_rapp_lunarlander(args)
+
+    # "/home/seungjae/Desktop/AI602/AI602_Project/bear/trained_LunarLander-v2_seungjae.pt"

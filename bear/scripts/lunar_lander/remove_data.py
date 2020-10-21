@@ -5,7 +5,7 @@ import copy
 
 def remove(path):
     data = torch.load(path)
-    location_list, action_list = [np.reshape(st[0][:2], (1, 2)) for st in data], [st[1] for st in data]
+    location_list, action_list = [np.reshape(st[0], (1, 8)) for st in data], [st[1] for st in data]
     location_list = np.concatenate(location_list, axis=0)
     action_list = np.asarray(action_list)
     
@@ -56,8 +56,14 @@ def remove(path):
     print("vertical : ", location_verti.shape, action_verti.shape)
 
     # Save
-    torch.save([location_hori, action_hori], "/home/seungjae/Desktop/lunarlander/replay_buffer_horizontal.pt")
-    torch.save([location_verti, action_verti], "/home/seungjae/Desktop/lunarlander/replay_buffer_vertical.pt")
+    for i, (a, l) in enumerate(zip(a_verti, l_verti)):
+        torch.save([l, a], f"/home/seungjae/Desktop/lunarlander/replay_buffer_vertical_{i}.pt")
+    for i, (a, l) in enumerate(zip(a_hori, l_hori)):
+        torch.save([l, a], f"/home/seungjae/Desktop/lunarlander/replay_buffer_horizontal_{i}.pt")
+        
+        
+    # torch.save([location_hori, action_hori], "/home/seungjae/Desktop/lunarlander/replay_buffer_horizontal.pt")
+    # torch.save([location_verti, action_verti], "/home/seungjae/Desktop/lunarlander/replay_buffer_vertical.pt")
 
 
 if __name__ == "__main__":

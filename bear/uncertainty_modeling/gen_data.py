@@ -79,6 +79,7 @@ def gen_datagrid(start=-1, end=1, step=101, B=50, type='linear', size='big',
 
     return train_data, index, meshgrid_data_lin
 
+
 def plot_meshgrid(ax, meshgrid_data_lin, index, texts=None):
     '''plot from linearl viewed meshgrid data and index
     '''

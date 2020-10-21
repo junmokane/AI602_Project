@@ -51,17 +51,17 @@ def visualize_replay_buffer(path):
 
 def visualize_training_set(path):
     data = torch.load(path)
-    location_list, action_list = data[0], data[1]
+    state_list, action_list = data[0], data[1]
 
     action_0 = action_list == 0
     action_1 = action_list == 1
     action_2 = action_list == 2
     action_3 = action_list == 3
     
-    location_0 = location_list[action_0, :]
-    location_1 = location_list[action_1, :]
-    location_2 = location_list[action_2, :]
-    location_3 = location_list[action_3, :]
+    location_0 = state_list[action_0, :2]
+    location_1 = state_list[action_1, :2]
+    location_2 = state_list[action_2, :2]
+    location_3 = state_list[action_3, :2]
     
     fig =  plt.figure(figsize=(10, 7))
     fig.add_subplot(2, 2, 1)
@@ -95,7 +95,7 @@ def visualize_training_set(path):
 if __name__ == "__main__":
     # path = "/home/seungjae/Desktop/lunarlander/replay_buffer.pt"
     # visualize_replay_buffer(path)
-    path = "/home/seungjae/Desktop/lunarlander/replay_buffer_horizontal.pt"
+    path = "/home/seungjae/Desktop/lunarlander/replay_buffer_horizontal_0.pt" # horizontal.pt
     visualize_training_set(path)
     path = "/home/seungjae/Desktop/lunarlander/replay_buffer_vertical.pt"
     visualize_training_set(path)
