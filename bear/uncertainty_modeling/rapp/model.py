@@ -38,24 +38,32 @@ class AE(nn.Module):
         return self.decoder(self.encoder(x))
 
 class RaPP(nn.Module):
-    def __init__(self):
+    def __init__(self, in_dim):
         super(RaPP, self).__init__()
-        self.enc_layer_list = [nn.Linear(2, 8),
+        self.enc_layer_list = [nn.Linear(in_dim, 32),
                                nn.ReLU(True),
-                                nn.Linear(8, 8),
+                                nn.Linear(32, 32),
                                 nn.ReLU(True),
-                                nn.Linear(8, 8),
+                                nn.Linear(32, 32),
                                 nn.ReLU(True),
-                                nn.Linear(8, 1)
+                                nn.Linear(32, 32),
+                                nn.ReLU(True),
+                                nn.Linear(32, 32),
+                                nn.ReLU(True),
+                                nn.Linear(32, 1)
                                ]
         self.encoder = nn.Sequential(*self.enc_layer_list)
-        self.decoder = nn.Sequential(nn.Linear(1, 8),
+        self.decoder = nn.Sequential(nn.Linear(1, 32),
                                      nn.ReLU(True),
-                                     nn.Linear(8, 8),
+                                     nn.Linear(32, 32),
                                      nn.ReLU(True),
-                                     nn.Linear(8, 8),
+                                     nn.Linear(32, 32),
+                                    nn.ReLU(True),
+                                    nn.Linear(32, 32),
+                                    nn.ReLU(True),
+                                     nn.Linear(32, 32),
                                      nn.ReLU(True),
-                                     nn.Linear(8, 2))
+                                     nn.Linear(32, in_dim))
 
     def forward(self, x):
         return self.decoder(self.encoder(x))

@@ -17,27 +17,27 @@ def uncertainty(data, M, k=5):
     return output_mean, output_var
 
 
-# MakinaRocks
+# MakinaRocks RaPP
 def get_diffs(x, model, batch_size=256):
     model.eval()
-
-    batchified = x.split(batch_size)
-    stacked = []
-    for _x in batchified:
-        model.eval()
-        diffs = []
-        _x = _x.to(next(model.parameters()).device).float()
-        x_tilde = model(_x)
-        diffs.append((x_tilde - _x).cpu())
-
-        for layer in model.enc_layer_list:
-            _x = layer(_x)
-            x_tilde = layer(x_tilde)
+    with torch.no_grad():
+        batchified = x.split(batch_size)
+        stacked = []
+        for _x in batchified:
+            model.eval()
+            diffs = []
+            _x = _x.to(next(model.parameters()).device).float()
+            x_tilde = model(_x)
             diffs.append((x_tilde - _x).cpu())
 
-        stacked.append(diffs)
+            for layer in model.enc_layer_list:
+                _x = layer(_x)
+                x_tilde = layer(x_tilde)
+                diffs.append((x_tilde - _x).cpu())
 
-    stacked = list(zip(*stacked))
-    diffs = [torch.cat(s, dim=0).numpy() for s in stacked]
+            stacked.append(diffs)
+
+        stacked = list(zip(*stacked))
+        diffs = [torch.cat(s, dim=0).numpy() for s in stacked]
 
     return diffs
