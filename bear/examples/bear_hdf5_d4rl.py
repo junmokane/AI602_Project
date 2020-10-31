@@ -132,7 +132,7 @@ def experiment(variant):
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(description='BEAR-runs')
-    parser.add_argument("--env", type=str, default='hopper-medium-expert-v0')
+    parser.add_argument("--env", type=str, default='relocate-human-v0')
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
