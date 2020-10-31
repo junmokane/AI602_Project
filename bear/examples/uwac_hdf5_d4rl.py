@@ -1,4 +1,5 @@
 import os, sys
+
 sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
 from gym.envs.mujoco import HalfCheetahEnv, HopperEnv, AntEnv, Walker2dEnv
@@ -9,8 +10,8 @@ from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, VAEPolicy
-from rlkit.torch.sac.bear import BEARTrainer
-from rlkit.torch.networks import FlattenMlp
+from rlkit.torch.sac.uwac import UWACTrainer
+from rlkit.torch.networks import FlattenMlp, FlattenMlp_Dropout
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 import numpy as np
 
@@ -18,17 +19,18 @@ import h5py, argparse
 import gym
 import d4rl
 
+
 def load_hdf5(dataset, replay_buffer, max_size):
     all_obs = dataset['observations']
     all_act = dataset['actions']
     N = min(all_obs.shape[0], max_size)
 
-    _obs = all_obs[:N-1]
-    _actions = all_act[:N-1]
+    _obs = all_obs[:N - 1]
+    _actions = all_act[:N - 1]
     _next_obs = all_obs[1:]
-    _rew = np.squeeze(dataset['rewards'][:N-1])
+    _rew = np.squeeze(dataset['rewards'][:N - 1])
     _rew = np.expand_dims(np.squeeze(_rew), axis=-1)
-    _done = np.squeeze(dataset['terminals'][:N-1])
+    _done = np.squeeze(dataset['terminals'][:N - 1])
     _done = (np.expand_dims(np.squeeze(_done), axis=-1)).astype(np.int32)
 
     max_length = 1000
@@ -36,7 +38,7 @@ def load_hdf5(dataset, replay_buffer, max_size):
     ## Only for MuJoCo environments
     ## Handle the condition when terminal is not True and trajectory ends due to a timeout
     for idx in range(_obs.shape[0]):
-        if ctr  >= max_length - 1:
+        if ctr >= max_length - 1:
             ctr = 0
         else:
             replay_buffer.add_sample_only(_obs[idx], _actions[idx], _rew[idx], _next_obs[idx], _done[idx])
@@ -45,7 +47,7 @@ def load_hdf5(dataset, replay_buffer, max_size):
                 ctr = 0
     ###
 
-    print (replay_buffer._size, replay_buffer._terminals.shape)
+    print(replay_buffer._size, replay_buffer._terminals.shape)
 
 
 def experiment(variant):
@@ -59,27 +61,27 @@ def experiment(variant):
     qf1 = FlattenMlp(
         input_size=obs_dim + action_dim,
         output_size=1,
-        hidden_sizes=[M, M,],
+        hidden_sizes=[M, M, ],
     )
     qf2 = FlattenMlp(
         input_size=obs_dim + action_dim,
         output_size=1,
-        hidden_sizes=[M, M,],
+        hidden_sizes=[M, M, ],
     )
-    target_qf1 = FlattenMlp(
+    target_qf1 = FlattenMlp_Dropout(
         input_size=obs_dim + action_dim,
         output_size=1,
-        hidden_sizes=[M, M,],
+        hidden_sizes=[M, M, ],
     )
-    target_qf2 = FlattenMlp(
+    target_qf2 = FlattenMlp_Dropout(
         input_size=obs_dim + action_dim,
         output_size=1,
-        hidden_sizes=[M, M,],
+        hidden_sizes=[M, M, ],
     )
     policy = TanhGaussianPolicy(
         obs_dim=obs_dim,
         action_dim=action_dim,
-        hidden_sizes=[M, M,], 
+        hidden_sizes=[M, M, ],
     )
     vae_policy = VAEPolicy(
         obs_dim=obs_dim,
@@ -97,14 +99,14 @@ def experiment(variant):
     buffer_filename = None
     if variant['buffer_filename'] is not None:
         buffer_filename = variant['buffer_filename']
-    
+
     replay_buffer = EnvReplayBuffer(
         variant['replay_buffer_size'],
         expl_env,
     )
     load_hdf5(eval_env.unwrapped.get_dataset(), replay_buffer, max_size=variant['replay_buffer_size'])
-    
-    trainer = BEARTrainer(
+
+    trainer = UWACTrainer(
         env=eval_env,
         policy=policy,
         qf1=qf1,
@@ -128,6 +130,7 @@ def experiment(variant):
     algorithm.to(ptu.device)
     algorithm.train()
 
+
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(description='BEAR-runs')
@@ -147,7 +150,7 @@ if __name__ == "__main__":
         version="normal",
         layer_size=256,
         replay_buffer_size=int(2E6),
-        buffer_filename=None, #halfcheetah_101000.pkl',
+        buffer_filename=None,  # halfcheetah_101000.pkl',
         load_buffer=True,
         env_name=args.env,
         algorithm_kwargs=dict(
@@ -191,7 +194,7 @@ if __name__ == "__main__":
                  script_name=None,
                  # **create_log_dir_kwargs
                  base_log_dir='./data',
-                 exp_id=0,
+                 exp_id=9999,
                  seed=0)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

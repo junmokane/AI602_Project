@@ -3,7 +3,7 @@ This codebase is built off of rlkit (https://github.com/vitchyr/rlkit/), and imp
 Then in order to run BEAR, an example command is:
 ```
 python examples/bear_hdf5_d4rl.py --env='halfcheetah-medium-v0' --policy_lr=1e-4 --num_samples=100
-python scripts/plot.py ./data/bear-halfcheetah-medium-expert-v0/ --f "evaluation/Returns Mean,evaluation/Returns Max"
+python scripts/plot.py ./data/bear-halfcheetah-expert-v0/ --f "evaluation/Returns Mean,evaluation/Returns Max,trainer/Q Targets Mean"
 ```
 where, `env` refers to a d4rl environment, `policy_lr` is the policy learning rate.
 
