@@ -53,7 +53,7 @@ class UWACTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 10000
+        self.beta = 1
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths
@@ -185,7 +185,7 @@ class UWACTrainer(TorchTrainer):
             #print(target_cat.shape)
 
             q_sq = torch.mean(target_cat ** 2, dim=1)  # Bx1
-            var = torch.std(target_cat, dim=1)
+            # var = torch.std(target_cat, dim=1)
             #print(var.shape)
             unc = self.beta / q_sq  # Bx1
             # TODO: clipping on uncertainty
@@ -193,7 +193,7 @@ class UWACTrainer(TorchTrainer):
             #print(unc.shape)
             #print(q_sq.flatten())
             #print(var.flatten())
-            #print(unc.flatten())
+            print(unc.flatten())
             #print(torch.mean(1/var), torch.std(1/var))
 
             #TODO: spectral norm on Q function
@@ -246,11 +246,12 @@ class UWACTrainer(TorchTrainer):
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
 
+
         if self.policy_update_style == '0':
-            policy_loss = torch.min(q_val1, q_val2)[:, 0] * unc[:, 0]
+            policy_loss = torch.min(q_val1, q_val2)[:, 0]
             #policy_loss = torch.min(q_val1, q_val2)[:, 0]
         elif self.policy_update_style == '1':
-            policy_loss = torch.mean(q_val1, q_val2)[:, 0] * unc[:, 0]
+            policy_loss = torch.mean(q_val1, q_val2)[:, 0]
             #policy_loss = torch.mean(q_val1, q_val2)[:, 0]
 
         if self._n_train_steps_total >= 40000:

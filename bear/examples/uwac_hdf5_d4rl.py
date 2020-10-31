@@ -19,6 +19,9 @@ import h5py, argparse
 import gym
 import d4rl
 
+import os
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"  # specify which GPU(s) to be used
 
 def load_hdf5(dataset, replay_buffer, max_size):
     all_obs = dataset['observations']
