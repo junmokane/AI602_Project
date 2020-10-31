@@ -19,6 +19,7 @@ import h5py, argparse
 import gym
 import d4rl
 
+import os
 
 def load_hdf5(dataset, replay_buffer, max_size):
     all_obs = dataset['observations']
