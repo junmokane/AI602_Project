@@ -10,7 +10,7 @@ from rlkit.torch.torch_rl_algorithm import TorchTrainer
 from torch import autograd
 
 
-class UWACTrainer(TorchTrainer):
+class BEARQ2Trainer(TorchTrainer):
     def __init__(
             self,
             env,
