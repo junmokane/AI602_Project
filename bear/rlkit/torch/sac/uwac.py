@@ -53,7 +53,7 @@ class UWACTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 1e-0
+        self.beta = 1e-2
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths
@@ -193,7 +193,7 @@ class UWACTrainer(TorchTrainer):
             #print(unc.shape)
             #print(q_sq.flatten())
             #print(var.flatten())
-            print(unc.flatten())
+            #print(unc.flatten())
             #print(torch.mean(1/var), torch.std(1/var))
 
             #TODO: spectral norm on Q function
