@@ -53,7 +53,7 @@ class UWACTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 1e-0
+        self.beta = 1.0
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths
@@ -173,11 +173,12 @@ class UWACTrainer(TorchTrainer):
             state_cp = next_obs.unsqueeze(1).repeat(1, self.T, 1).view(next_obs.shape[0] * self.T, next_obs.shape[1])
             action_cp = self.policy(next_obs)[0]  # BxA
             #print(action_cp.shape)
+            # BTxA
             action_cp = action_cp.unsqueeze(1).repeat(1, self.T, 1).view(action_cp.shape[0] * self.T, action_cp.shape[1])
             #print(action_cp.shape)
             #print(state_cp.shape)
-            target_qf1 = self.target_qf1(state_cp, action_cp)  # BTx1
-            target_qf2 = self.target_qf2(state_cp, action_cp)  # BTx1
+            target_qf1 = self.qf1(state_cp, action_cp)  # BTx1
+            target_qf2 = self.qf2(state_cp, action_cp)  # BTx1
             target_qf1 = target_qf1.view(next_obs.shape[0], self.T, 1)  # BxTx1
             target_qf2 = target_qf2.view(next_obs.shape[0], self.T, 1)  # BxTx1
             target_cat = torch.cat([target_qf1, target_qf2], dim=1)  # Bx2Tx1
@@ -191,9 +192,10 @@ class UWACTrainer(TorchTrainer):
             # TODO: clipping on uncertainty
             unc = torch.clamp(unc, 0.0, 1.5)
             #print(unc.shape)
-            #print(q_sq.flatten())
+
             #print(var.flatten())
-            print(unc.flatten())
+            #print(q_sq.flatten())
+            #print(unc.flatten())
             #print(torch.mean(1/var), torch.std(1/var))
 
             #TODO: spectral norm on Q function
@@ -223,8 +225,6 @@ class UWACTrainer(TorchTrainer):
         qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * unc).mean()
         #qf1_loss = ((qf1_pred - target_Q.detach()).pow(2)).mean()
         #qf2_loss = ((qf2_pred - target_Q.detach()).pow(2)).mean()
-        #print(qf1_loss, qf2_loss)
-        #print((qf1_pred - target_Q.detach()).pow(2).mean(), (qf2_pred - target_Q.detach()).pow(2).mean())
 
         """
         Actor Training
@@ -245,6 +245,31 @@ class UWACTrainer(TorchTrainer):
 
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
+
+        '''
+        Varaince calculation
+        '''
+        with torch.no_grad():
+            # BTxS
+            state_cp = obs.unsqueeze(1).repeat(1, self.T, 1).view(obs.shape[0] * self.T, obs.shape[1])
+            # BTxA
+            action_cp = actor_samples[:, 0, :].unsqueeze(1).repeat(1, self.T, 1).view(
+                actor_samples[:, 0, :].shape[0] * self.T,
+                actor_samples[:, 0, :].shape[1])
+            target_qf1 = self.qf1(state_cp, action_cp)  # BTx1
+            target_qf2 = self.qf2(state_cp, action_cp)  # BTx1
+            target_qf1 = target_qf1.view(next_obs.shape[0], self.T, 1)  # BxTx1
+            target_qf2 = target_qf2.view(next_obs.shape[0], self.T, 1)  # BxTx1
+            target_cat = torch.cat([target_qf1, target_qf2], dim=1)  # Bx2Tx1
+
+            q_sq = torch.mean(target_cat ** 2, dim=1)  # Bx1
+            var = torch.std(target_cat, dim=1)
+            # print(var.shape)
+            unc = self.beta / q_sq  # Bx1
+            # TODO: clipping on uncertainty
+            unc = torch.clamp(unc, 0.0, 1.5)
+            # TODO: spectral norm on Q function
+
 
         if self.policy_update_style == '0':
             policy_loss = torch.min(q_val1, q_val2)[:, 0] * unc[:, 0]

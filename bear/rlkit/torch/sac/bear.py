@@ -191,7 +191,7 @@ class BEARTrainer(TorchTrainer):
             unc = self.beta / var  # Bx1
             # print(unc.shape)
             #print(qq_t.flatten())
-            print(var.flatten())
+            #print(var.flatten())
             # print(torch.mean(1 / var), torch.std(1 / var))
 
         """
