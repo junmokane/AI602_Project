@@ -10,7 +10,7 @@ from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, VAEPolicy
-from rlkit.torch.sac.uwac import UWACTrainer
+from rlkit.torch.sac.bear_with_q2 import BEARQ2Trainer
 from rlkit.torch.networks import FlattenMlp, FlattenMlp_Dropout
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 import numpy as np
@@ -21,7 +21,7 @@ import d4rl
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"  # specify which GPU(s) to be used
+os.environ["CUDA_VISIBLE_DEVICES"]="3"  # specify which GPU(s) to be used
 
 def load_hdf5(dataset, replay_buffer, max_size):
     all_obs = dataset['observations']
@@ -109,7 +109,7 @@ def experiment(variant):
     )
     load_hdf5(eval_env.unwrapped.get_dataset(), replay_buffer, max_size=variant['replay_buffer_size'])
 
-    trainer = UWACTrainer(
+    trainer = BEARQ2Trainer(
         env=eval_env,
         policy=policy,
         qf1=qf1,
@@ -137,7 +137,7 @@ def experiment(variant):
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(description='BEAR-runs')
-    parser.add_argument("--env", type=str, default='pen-cloned-v0')
+    parser.add_argument("--env", type=str, default='door-cloned-v0')
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
