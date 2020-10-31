@@ -20,8 +20,6 @@ import gym
 import d4rl
 
 import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="1"  # specify which GPU(s) to be used
 
 def load_hdf5(dataset, replay_buffer, max_size):
     all_obs = dataset['observations']
@@ -61,22 +59,22 @@ def experiment(variant):
     action_dim = eval_env.action_space.low.size
 
     M = variant['layer_size']
-    qf1 = FlattenMlp(
+    qf1 = FlattenMlp_Dropout(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
     )
-    qf2 = FlattenMlp(
+    qf2 = FlattenMlp_Dropout(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
     )
-    target_qf1 = FlattenMlp_Dropout(
+    target_qf1 = FlattenMlp(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
     )
-    target_qf2 = FlattenMlp_Dropout(
+    target_qf2 = FlattenMlp(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
@@ -137,7 +135,7 @@ def experiment(variant):
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(description='BEAR-runs')
-    parser.add_argument("--env", type=str, default='pen-cloned-v0')
+    parser.add_argument("--env", type=str, default='hopper-random-v0')
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)

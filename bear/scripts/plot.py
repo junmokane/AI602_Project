@@ -37,10 +37,10 @@ def plot_data(args):
 
         csv_slices = []
         for csv_path in csv_paths:
+            print(csv_path)
             csv = pd.read_csv(csv_path)
-            csv_slices.append(csv.loc[:, [feature]])
+            csv_slices.append(csv.loc[0:80, [feature]])
             del csv
-
         plot_one(exp_names, csv_slices, feature)
     plt.show()
 
