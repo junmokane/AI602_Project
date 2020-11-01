@@ -32,14 +32,11 @@ def plot_data(args):
         path = path.rstrip('/').rstrip('\\')
         csv_paths = glob.glob(f"{path}/**/progress.csv")
         exp_names = [csv_path.split("/")[-2] for csv_path in csv_paths]
-        
-        assert len(csv_paths) > 0, "There is no csv files"
 
         csv_slices = []
         for csv_path in csv_paths:
-            print(csv_path)
             csv = pd.read_csv(csv_path)
-            csv_slices.append(csv.loc[0:80, [feature]])
+            csv_slices.append(csv.loc[:, [feature]])
             del csv
         plot_one(exp_names, csv_slices, feature)
     plt.show()
