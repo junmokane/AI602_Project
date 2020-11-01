@@ -6,14 +6,13 @@ import argparse
 from collections import defaultdict
 
 
-def plot_one(exp_names, csv_slices, feature):
-    print(feature)
+def plot_one(exp_names, csv_slices, feature, env_name):
     fig = plt.figure(figsize=(8, 8))
     fig.canvas.set_window_title(feature)
     for csv_slice in csv_slices:
         plt.plot(csv_slice[feature].to_numpy())
     plt.legend(exp_names)
-    plt.title(feature, fontsize=17)
+    plt.title(env_name, fontsize=17)
     plt.xlabel("iteration", fontsize=15)
     plt.xticks(fontsize=13)
     plt.ylabel(feature, fontsize=15)
@@ -30,15 +29,21 @@ def plot_data(args):
 
     for feature in features:
         path = path.rstrip('/').rstrip('\\')
+        env_name = path.split('/')[-1]
+        method = env_name.split('-')[0]
+        env_name = env_name.replace(method+'-', '')
         csv_paths = glob.glob(f"{path}/**/progress.csv")
         exp_names = [csv_path.split("/")[-2] for csv_path in csv_paths]
+        
+        assert len(csv_paths) > 0, "There is no csv files"
 
         csv_slices = []
         for csv_path in csv_paths:
             csv = pd.read_csv(csv_path)
             csv_slices.append(csv.loc[:, [feature]])
             del csv
-        plot_one(exp_names, csv_slices, feature)
+
+        plot_one(exp_names, csv_slices, feature, env_name)
     plt.show()
 
 
