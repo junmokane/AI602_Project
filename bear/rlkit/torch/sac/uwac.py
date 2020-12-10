@@ -53,7 +53,7 @@ class UWACTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 10000
+        self.beta = 1
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths

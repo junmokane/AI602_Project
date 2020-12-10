@@ -4,43 +4,43 @@ import numpy as np
 import torch
 import torch.optim as optim
 from torch import nn as nn
-
 import rlkit.torch.pytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.torch_rl_algorithm import TorchTrainer
 from torch import autograd
 
-class BEARTrainer(TorchTrainer):
+
+class MUSATTrainer(TorchTrainer):
     def __init__(
-        self,
-        env,
-        policy,
-        qf1,
-        qf2,
-        target_qf1,
-        target_qf2,
-        vae,
+            self,
+            env,
+            policy,
+            qf1,
+            qf2,
+            target_qf1,
+            target_qf2,
+            vae,
 
-        discount=0.99,
-        reward_scale=1.0,
+            discount=0.99,
+            reward_scale=1.0,
 
-        policy_lr=1e-3,
-        qf_lr=1e-3,
-        optimizer_class=optim.Adam,
+            policy_lr=1e-3,
+            qf_lr=1e-3,
+            optimizer_class=optim.Adam,
 
-        soft_target_tau=1e-2,
-        target_update_period=1,
-        plotter=None,
-        render_eval_paths=False,
+            soft_target_tau=1e-2,
+            target_update_period=1,
+            plotter=None,
+            render_eval_paths=False,
 
-        # BEAR specific params
-        mode='auto',
-        kernel_choice='laplacian',
-        policy_update_style=0,
-        mmd_sigma=10.0,
-        target_mmd_thresh=0.05,
-        num_samples_mmd_match=4,
-        use_target_nets=True,
+            # BEAR specific params
+            mode='auto',
+            kernel_choice='laplacian',
+            policy_update_style=0,
+            mmd_sigma=10.0,
+            target_mmd_thresh=0.05,
+            num_samples_mmd_match=4,
+            use_target_nets=True,
     ):
         super().__init__()
         self.env = env
@@ -52,6 +52,8 @@ class BEARTrainer(TorchTrainer):
         self.vae = vae
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
+        self.T = 100
+        self.beta = 1
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths
@@ -100,11 +102,11 @@ class BEARTrainer(TorchTrainer):
         self._policy_update_ctr = 0
         self._num_q_update_steps = 0
         self._num_policy_update_steps = 0
-        
+
     def eval_q_custom(self, custom_policy, data_batch, q_function=None):
         if q_function is None:
             q_function = self.qf1
-        
+
         obs = data_batch['observations']
         # Evaluate policy Loss
         new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
@@ -112,33 +114,33 @@ class BEARTrainer(TorchTrainer):
         )
         q_new_actions = q_function(obs, new_obs_actions)
         return float(q_new_actions.mean().detach().cpu().numpy())
-    
+
     def mmd_loss_laplacian(self, samples1, samples2, sigma=0.2):
         """MMD constraint with Laplacian kernel for support matching"""
         # sigma is set to 20.0 for hopper, cheetah and 50 for walker/ant
         diff_x_x = samples1.unsqueeze(2) - samples1.unsqueeze(1)  # B x N x N x d
-        diff_x_x = torch.mean((-(diff_x_x.abs()).sum(-1)/(2.0 * sigma)).exp(), dim=(1,2))
+        diff_x_x = torch.mean((-(diff_x_x.abs()).sum(-1) / (2.0 * sigma)).exp(), dim=(1, 2))
 
         diff_x_y = samples1.unsqueeze(2) - samples2.unsqueeze(1)
-        diff_x_y = torch.mean((-(diff_x_y.abs()).sum(-1)/(2.0 * sigma)).exp(), dim=(1, 2))
+        diff_x_y = torch.mean((-(diff_x_y.abs()).sum(-1) / (2.0 * sigma)).exp(), dim=(1, 2))
 
         diff_y_y = samples2.unsqueeze(2) - samples2.unsqueeze(1)  # B x N x N x d
-        diff_y_y = torch.mean((-(diff_y_y.abs()).sum(-1)/(2.0 * sigma)).exp(), dim=(1,2))
+        diff_y_y = torch.mean((-(diff_y_y.abs()).sum(-1) / (2.0 * sigma)).exp(), dim=(1, 2))
 
         overall_loss = (diff_x_x + diff_y_y - 2.0 * diff_x_y + 1e-6).sqrt()
         return overall_loss
-    
+
     def mmd_loss_gaussian(self, samples1, samples2, sigma=0.2):
         """MMD constraint with Gaussian Kernel support matching"""
         # sigma is set to 20.0 for hopper, cheetah and 50 for walker/ant
         diff_x_x = samples1.unsqueeze(2) - samples1.unsqueeze(1)  # B x N x N x d
-        diff_x_x = torch.mean((-(diff_x_x.pow(2)).sum(-1)/(2.0 * sigma)).exp(), dim=(1,2))
+        diff_x_x = torch.mean((-(diff_x_x.pow(2)).sum(-1) / (2.0 * sigma)).exp(), dim=(1, 2))
 
         diff_x_y = samples1.unsqueeze(2) - samples2.unsqueeze(1)
-        diff_x_y = torch.mean((-(diff_x_y.pow(2)).sum(-1)/(2.0 * sigma)).exp(), dim=(1, 2))
+        diff_x_y = torch.mean((-(diff_x_y.pow(2)).sum(-1) / (2.0 * sigma)).exp(), dim=(1, 2))
 
         diff_y_y = samples2.unsqueeze(2) - samples2.unsqueeze(1)  # B x N x N x d
-        diff_y_y = torch.mean((-(diff_y_y.pow(2)).sum(-1)/(2.0 * sigma)).exp(), dim=(1,2))
+        diff_y_y = torch.mean((-(diff_y_y.pow(2)).sum(-1) / (2.0 * sigma)).exp(), dim=(1, 2))
 
         overall_loss = (diff_x_x + diff_y_y - 2.0 * diff_x_y + 1e-6).sqrt()
         return overall_loss
@@ -166,25 +168,27 @@ class BEARTrainer(TorchTrainer):
         """
         Critic Training
         """
-        # import ipdb; ipdb.set_trace()
         with torch.no_grad():
             # Duplicate state 10 times (10 is a hyperparameter chosen by BCQ)
-            state_rep = next_obs.unsqueeze(1).repeat(1, 10, 1).view(next_obs.shape[0]*10, next_obs.shape[1]) # 10BxS
+            state_rep = next_obs.unsqueeze(1).repeat(1, 10, 1).view(next_obs.shape[0] * 10, next_obs.shape[1])  # 10BxS
             # Compute value of perturbed actions sampled from the VAE
-            action_rep = self.policy(state_rep)[0]
+            next_action = self.policy(next_obs)[0]
+            action_rep = next_action.unsqueeze(1).repeat(1, 10, 1).view(next_action.shape[0] * 10, next_action.shape[1])  # 10BxS
             target_qf1 = self.target_qf1(state_rep, action_rep)
             target_qf2 = self.target_qf2(state_rep, action_rep)
 
-            # Soft Clipped Double Q-learning 
+            # Soft Clipped Double Q-learning
             target_Q = 0.75 * torch.min(target_qf1, target_qf2) + 0.25 * torch.max(target_qf1, target_qf2)
             target_Q = target_Q.view(next_obs.shape[0], -1).max(1)[0].view(-1, 1)
             target_Q = self.reward_scale * rewards + (1.0 - terminals) * self.discount * target_Q  # Bx1
 
         qf1_pred = self.qf1(obs, actions)  # Bx1
         qf2_pred = self.qf2(obs, actions)  # Bx1
-        qf1_loss = (qf1_pred - target_Q.detach()).pow(2).mean()
-        qf2_loss = (qf2_pred - target_Q.detach()).pow(2).mean()
-        
+        critic_unc = self.unc_mc_dropout(next_obs, next_action)
+        qf1_loss = ((qf1_pred - target_Q.detach()).pow(2) * critic_unc).mean()
+        qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * critic_unc).mean()
+
+
         """
         Actor Training
         """
@@ -199,29 +203,32 @@ class BEARTrainer(TorchTrainer):
         elif self.kernel_choice == 'gaussian':
             mmd_loss = self.mmd_loss_gaussian(raw_sampled_actions, raw_actor_actions, sigma=self.mmd_sigma)
 
-        action_divergence = ((sampled_actions - actor_samples)**2).sum(-1)
-        raw_action_divergence = ((raw_sampled_actions - raw_actor_actions)**2).sum(-1)
+        action_divergence = ((sampled_actions - actor_samples) ** 2).sum(-1)
+        raw_action_divergence = ((raw_sampled_actions - raw_actor_actions) ** 2).sum(-1)
 
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
+        actor_unc = self.unc_mc_dropout(obs, actor_samples[:, 0, :])
+
 
         if self.policy_update_style == '0':
-            policy_loss = torch.min(q_val1, q_val2)[:, 0]
+            policy_loss = torch.min(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
         elif self.policy_update_style == '1':
-            policy_loss = torch.mean(q_val1, q_val2)[:, 0]
-        
+            policy_loss = torch.mean(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
+
         if self._n_train_steps_total >= 40000:
             # Now we can update the policy
             if self.mode == 'auto':
                 policy_loss = (-policy_loss + self.log_alpha.exp() * (mmd_loss - self.target_mmd_thresh)).mean()
             else:
-                policy_loss = (-policy_loss + 100*mmd_loss).mean()
+                policy_loss = (-policy_loss + 100 * mmd_loss).mean()
         else:
             if self.mode == 'auto':
                 policy_loss = (self.log_alpha.exp() * (mmd_loss - self.target_mmd_thresh)).mean()
             else:
-                policy_loss = 100*mmd_loss.mean()
-        
+                policy_loss = 100 * mmd_loss.mean()
+
+
         """
         Update Networks
         """
@@ -243,7 +250,7 @@ class BEARTrainer(TorchTrainer):
             (-policy_loss).backward()
             self.alpha_optimizer.step()
             self.log_alpha.data.clamp_(min=-5.0, max=10.0)
-        
+
         """
         Update networks
         """
@@ -254,7 +261,7 @@ class BEARTrainer(TorchTrainer):
             ptu.soft_update_from_to(
                 self.qf2, self.target_qf2, self.soft_target_tau
             )
-        
+
         """
         Some statistics for eval
         """
@@ -297,14 +304,30 @@ class BEARTrainer(TorchTrainer):
             ))
             if self.mode == 'auto':
                 self.eval_statistics['Alpha'] = self.log_alpha.exp().item()
-        
+
         self._n_train_steps_total += 1
-    
+
     def get_diagnostics(self):
         return self.eval_statistics
 
     def end_epoch(self, epoch):
         self._need_to_update_eval_statistics = True
+
+    def unc_mc_dropout(self, obs, action):
+        with torch.no_grad():
+            state_cp = obs.unsqueeze(1).repeat(1, self.T, 1).view(obs.shape[0] * self.T, obs.shape[1])
+            action_cp = action.unsqueeze(1).repeat(1, self.T, 1).view(action.shape[0] * self.T, action.shape[1])
+            target_q1 = self.qf1(state_cp, action_cp)  # BTx1
+            target_q2 = self.qf2(state_cp, action_cp)  # BTx1
+            target_q1 = target_q1.view(obs.shape[0], self.T, 1)  # BxTx1
+            target_q2 = target_q2.view(obs.shape[0], self.T, 1)  # BxTx1
+            target_q = torch.cat((target_q1, target_q2), dim=1)  # Bx2Tx1
+            q_sq = torch.mean(target_q ** 2, dim=1)  # Bx1
+            q_mean_sq = torch.mean(target_q, dim=1) ** 2
+            var = q_sq - q_mean_sq
+            unc = self.beta / var  # Bx1
+            unc = torch.clamp(unc, 0.0, 1.5)
+        return unc.detach()
 
     @property
     def networks(self):

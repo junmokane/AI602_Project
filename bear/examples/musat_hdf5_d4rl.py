@@ -10,7 +10,7 @@ from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector, CustomMDPPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic, VAEPolicy
-from rlkit.torch.sac.uwac import UWACTrainer
+from rlkit.torch.sac.musat import MUSATTrainer
 from rlkit.torch.networks import FlattenMlp, FlattenMlp_Dropout
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 import numpy as np
@@ -107,7 +107,7 @@ def experiment(variant):
     )
     load_hdf5(eval_env.unwrapped.get_dataset(), replay_buffer, max_size=variant['replay_buffer_size'])
 
-    trainer = UWACTrainer(
+    trainer = MUSATTrainer(
         env=eval_env,
         policy=policy,
         qf1=qf1,
@@ -134,7 +134,7 @@ def experiment(variant):
 
 if __name__ == "__main__":
     # noinspection PyTypeChecker
-    parser = argparse.ArgumentParser(description='UWAC-runs')
+    parser = argparse.ArgumentParser(description='MUSAT-runs')
     parser.add_argument("--env", type=str, default='relocate-human-v0')
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     variant = dict(
-        algorithm="UWAC",
+        algorithm="MUSAT",
         version="normal",
         layer_size=256,
         replay_buffer_size=int(2E6),
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                  script_name=None,
                  # **create_log_dir_kwargs
                  base_log_dir='./data',
-                 exp_id=1,
+                 exp_id=2,
                  seed=0)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
