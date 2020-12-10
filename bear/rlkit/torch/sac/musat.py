@@ -216,18 +216,7 @@ class MUSATTrainer(TorchTrainer):
         elif self.policy_update_style == '1':
             policy_loss = torch.mean(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
 
-        if self._n_train_steps_total >= 40000:
-            # Now we can update the policy
-            if self.mode == 'auto':
-                policy_loss = (-policy_loss + self.log_alpha.exp() * (mmd_loss - self.target_mmd_thresh)).mean()
-            else:
-                policy_loss = (-policy_loss + 100 * mmd_loss).mean()
-        else:
-            if self.mode == 'auto':
-                policy_loss = (self.log_alpha.exp() * (mmd_loss - self.target_mmd_thresh)).mean()
-            else:
-                policy_loss = 100 * mmd_loss.mean()
-
+        policy_loss = (-policy_loss).mean()
 
         """
         Update Networks
