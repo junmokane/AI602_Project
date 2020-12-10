@@ -8,3 +8,5 @@ MANIFEST
 *.egg-info
 \.idea/
 data
+
+uncertainty_modeling/rl_uncertainty/mc_dropout/model

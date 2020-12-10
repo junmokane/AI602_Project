@@ -13,7 +13,7 @@ import d4rl
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", type=str, default='halfcheetah-expert-v0', help="designate task name")
 opts = parser.parse_args()
-path = './uncertainty_modeling/rl_uncertainty/mc_dropout'
+path = './uncertainty_modeling/rl_uncertainty/mc_dropout/model'
 os.makedirs('{}/{}'.format(path, opts.env_name), exist_ok = True)
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 # Tensor = torch.Tensor
