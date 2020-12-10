@@ -8,7 +8,34 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.torch_rl_algorithm import TorchTrainer
 from torch import autograd
+from rlkit.torch.networks import FlattenMlp_Dropout
 
+
+model = FlattenMlp_Dropout( # Check the dropout layer!
+            input_size=23,
+            output_size=1,
+            hidden_sizes=[256, 256],
+        ).cuda()
+model.load_state_dict(torch.load('')) # write the path of the pre-trained model
+
+
+def uncertainty(state, action, rep, beta):
+    with torch.no_grad():
+        batch_size = state.shape[0]
+        state_cp = state.unsqueeze(1).repeat(1, rep, 1).view(state.shape[0] * rep, state.shape[1])
+        action_cp = action.unsqueeze(1).repeat(1, rep, 1).view(action.shape[0] * rep, action.shape[1])
+
+        target_qf1 = model(torch.cat([state_cp, action_cp], dim=1))  # BTx1
+        target_qf1 = target_qf1.view(batch_size, rep, 1)  # BxTx1
+
+        q_sq = torch.mean(target_qf1 ** 2, dim=1)  # Bx1
+        q_mean_sq = torch.mean(target_qf1, dim=1) ** 2  # Bx1
+        # var = torch.std(target_qf1, dim=1)
+        var = q_sq - q_mean_sq
+        unc = beta / var  # Bx1
+        # TODO: clipping on uncertainty
+        unc_critic = torch.clamp(unc, 0.0, 1.5)
+    return unc_critic
 
 class MUSATTrainer(TorchTrainer):
     def __init__(
@@ -184,7 +211,7 @@ class MUSATTrainer(TorchTrainer):
 
         qf1_pred = self.qf1(obs, actions)  # Bx1
         qf2_pred = self.qf2(obs, actions)  # Bx1
-        critic_unc = self.unc_mc_dropout(next_obs, next_action)
+        critic_unc = self.uncertainty(next_obs, next_action, self.T, self.beta)
         qf1_loss = ((qf1_pred - target_Q.detach()).pow(2) * critic_unc).mean()
         qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * critic_unc).mean()
 
@@ -208,7 +235,7 @@ class MUSATTrainer(TorchTrainer):
 
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
-        actor_unc = self.unc_mc_dropout(obs, actor_samples[:, 0, :])
+        actor_unc = uncertainty(obs, actor_samples[:, 0, :], self.T, self.beta)
 
 
         if self.policy_update_style == '0':
