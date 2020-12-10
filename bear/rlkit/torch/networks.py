@@ -140,6 +140,7 @@ class Mlp_Dropout(nn.Module):
         else:
             return output
 
+
 class FlattenMlp(Mlp):
     """
     Flatten inputs along dimension 1 and then pass through MLP.
