@@ -13,8 +13,8 @@ import d4rl
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", type=str, default='halfcheetah-expert-v0', help="designate task name")
 opts = parser.parse_args()
-
-os.makedirs('{}'.format(opts.env_name), exist_ok = True)
+path = './uncertainty_modeling/rl_uncertainty/mc_dropout'
+os.makedirs('{}/{}'.format(path, opts.env_name), exist_ok = True)
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 # Tensor = torch.Tensor
 
@@ -78,7 +78,7 @@ def train():
         print('[Epoch : %d/%d] [loss : %f] ' % (ep, epoch, np.mean(np.array(loss_buffer))))
 
         if ep % 20 == 0:
-            torch.save(model.state_dict(), '{}/model_{}.pt'.format(opts.env_name, ep))
+            torch.save(model.state_dict(), '{}/{}/model_{}.pt'.format(path, opts.env_name, ep))
 
     test()
 
