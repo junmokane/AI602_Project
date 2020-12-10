@@ -34,6 +34,8 @@ def plot_data(args):
         env_name = env_name.replace(method+'-', '')
         csv_paths = glob.glob(f"{path}/**/progress.csv")
         exp_names = [csv_path.split("/")[-2] for csv_path in csv_paths]
+        
+        assert len(csv_paths) > 0, "There is no csv files"
 
         csv_slices = []
         for csv_path in csv_paths:

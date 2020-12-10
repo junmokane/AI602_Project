@@ -193,7 +193,7 @@ class BEARQ2Trainer(TorchTrainer):
             #print(unc.shape)
             #print(q_sq.flatten())
             #print(var.flatten())
-            print(unc.flatten())
+            # print(unc.flatten())
             #print(torch.mean(1/var), torch.std(1/var))
 
             #TODO: spectral norm on Q function

@@ -53,7 +53,7 @@ class UWACTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 1.0
+        self.beta = 10000
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths
@@ -188,6 +188,7 @@ class UWACTrainer(TorchTrainer):
         qf1_loss = ((qf1_pred - target_Q.detach()).pow(2) * critic_unc).mean()
         qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * critic_unc).mean()
 
+
         """
         Actor Training
         """
@@ -208,6 +209,7 @@ class UWACTrainer(TorchTrainer):
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
         actor_unc = self.unc_mc_dropout(obs, actor_samples[:, 0, :])
+
 
         if self.policy_update_style == '0':
             policy_loss = torch.min(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
