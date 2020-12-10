@@ -165,52 +165,15 @@ class UWACTrainer(TorchTrainer):
         vae_loss.backward()
         self.vae_optimizer.step()
 
-        '''
-        Varaince calculation
-        '''
-        with torch.no_grad():
-            # BTxS
-            state_cp = next_obs.unsqueeze(1).repeat(1, self.T, 1).view(next_obs.shape[0] * self.T, next_obs.shape[1])
-            action_cp = self.policy(next_obs)[0]  # BxA
-            #print(action_cp.shape)
-            # BTxA
-            action_cp = action_cp.unsqueeze(1).repeat(1, self.T, 1).view(action_cp.shape[0] * self.T, action_cp.shape[1])
-            #print(action_cp.shape)
-            #print(state_cp.shape)
-            target_qf1 = self.qf1(state_cp, action_cp)  # BTx1
-            target_qf2 = self.qf2(state_cp, action_cp)  # BTx1
-            target_qf1 = target_qf1.view(next_obs.shape[0], self.T, 1)  # BxTx1
-            target_qf2 = target_qf2.view(next_obs.shape[0], self.T, 1)  # BxTx1
-            target_cat = torch.cat([target_qf1, target_qf2], dim=1)  # Bx2Tx1
-            #print(target_qf1.shape)
-            #print(target_cat.shape)
-
-            q_sq = torch.mean(target_cat ** 2, dim=1)  # Bx1
-            var = torch.std(target_cat, dim=1)
-            #print(var.shape)
-            unc = self.beta / q_sq  # Bx1
-            # TODO: clipping on uncertainty
-            unc = torch.clamp(unc, 0.0, 1.5)
-            #print(unc.shape)
-
-            #print(var.flatten())
-            #print(q_sq.flatten())
-            #print(unc.flatten())
-            #print(torch.mean(1/var), torch.std(1/var))
-
-            #TODO: spectral norm on Q function
-
-
-
         """
         Critic Training
         """
-        # import ipdb; ipdb.set_trace()
         with torch.no_grad():
             # Duplicate state 10 times (10 is a hyperparameter chosen by BCQ)
             state_rep = next_obs.unsqueeze(1).repeat(1, 10, 1).view(next_obs.shape[0] * 10, next_obs.shape[1])  # 10BxS
             # Compute value of perturbed actions sampled from the VAE
-            action_rep = self.policy(state_rep)[0]
+            next_action = self.policy(next_obs)[0]
+            action_rep = next_action.unsqueeze(1).repeat(1, 10, 1).view(next_action.shape[0] * 10, next_action.shape[1])  # 10BxS
             target_qf1 = self.target_qf1(state_rep, action_rep)
             target_qf2 = self.target_qf2(state_rep, action_rep)
 
@@ -221,10 +184,9 @@ class UWACTrainer(TorchTrainer):
 
         qf1_pred = self.qf1(obs, actions)  # Bx1
         qf2_pred = self.qf2(obs, actions)  # Bx1
-        qf1_loss = ((qf1_pred - target_Q.detach()).pow(2) * unc).mean()
-        qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * unc).mean()
-        #qf1_loss = ((qf1_pred - target_Q.detach()).pow(2)).mean()
-        #qf2_loss = ((qf2_pred - target_Q.detach()).pow(2)).mean()
+        critic_unc = self.unc_mc_dropout(next_obs, next_action)
+        qf1_loss = ((qf1_pred - target_Q.detach()).pow(2) * critic_unc).mean()
+        qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * critic_unc).mean()
 
         """
         Actor Training
@@ -245,38 +207,12 @@ class UWACTrainer(TorchTrainer):
 
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
-
-        '''
-        Varaince calculation
-        '''
-        with torch.no_grad():
-            # BTxS
-            state_cp = obs.unsqueeze(1).repeat(1, self.T, 1).view(obs.shape[0] * self.T, obs.shape[1])
-            # BTxA
-            action_cp = actor_samples[:, 0, :].unsqueeze(1).repeat(1, self.T, 1).view(
-                actor_samples[:, 0, :].shape[0] * self.T,
-                actor_samples[:, 0, :].shape[1])
-            target_qf1 = self.qf1(state_cp, action_cp)  # BTx1
-            target_qf2 = self.qf2(state_cp, action_cp)  # BTx1
-            target_qf1 = target_qf1.view(next_obs.shape[0], self.T, 1)  # BxTx1
-            target_qf2 = target_qf2.view(next_obs.shape[0], self.T, 1)  # BxTx1
-            target_cat = torch.cat([target_qf1, target_qf2], dim=1)  # Bx2Tx1
-
-            q_sq = torch.mean(target_cat ** 2, dim=1)  # Bx1
-            var = torch.std(target_cat, dim=1)
-            # print(var.shape)
-            unc = self.beta / q_sq  # Bx1
-            # TODO: clipping on uncertainty
-            unc = torch.clamp(unc, 0.0, 1.5)
-            # TODO: spectral norm on Q function
-
+        actor_unc = self.unc_mc_dropout(obs, actor_samples[:, 0, :])
 
         if self.policy_update_style == '0':
-            policy_loss = torch.min(q_val1, q_val2)[:, 0] * unc[:, 0]
-            #policy_loss = torch.min(q_val1, q_val2)[:, 0]
+            policy_loss = torch.min(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
         elif self.policy_update_style == '1':
-            policy_loss = torch.mean(q_val1, q_val2)[:, 0] * unc[:, 0]
-            #policy_loss = torch.mean(q_val1, q_val2)[:, 0]
+            policy_loss = torch.mean(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
 
         if self._n_train_steps_total >= 40000:
             # Now we can update the policy
@@ -374,6 +310,22 @@ class UWACTrainer(TorchTrainer):
 
     def end_epoch(self, epoch):
         self._need_to_update_eval_statistics = True
+
+    def unc_mc_dropout(self, obs, action):
+        with torch.no_grad():
+            state_cp = obs.unsqueeze(1).repeat(1, self.T, 1).view(obs.shape[0] * self.T, obs.shape[1])
+            action_cp = action.unsqueeze(1).repeat(1, self.T, 1).view(action.shape[0] * self.T, action.shape[1])
+            target_q1 = self.qf1(state_cp, action_cp)  # BTx1
+            target_q2 = self.qf2(state_cp, action_cp)  # BTx1
+            target_q1 = target_q1.view(obs.shape[0], self.T, 1)  # BxTx1
+            target_q2 = target_q2.view(obs.shape[0], self.T, 1)  # BxTx1
+            target_q = torch.cat((target_q1, target_q2), dim=1)  # Bx2Tx1
+            q_sq = torch.mean(target_q ** 2, dim=1)  # Bx1
+            q_mean_sq = torch.mean(target_q, dim=1) ** 2
+            var = q_sq - q_mean_sq
+            unc = self.beta / var  # Bx1
+            unc = torch.clamp(unc, 0.0, 1.5)
+        return unc.detach()
 
     @property
     def networks(self):
