@@ -7,7 +7,7 @@ from uncertainty_modeling.rl_uncertainty.subspaces import Subspace
 
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
-
+init_w=3e-3
 def log_gaussian_loss(output, target, sigma, no_dim):
     exponent = -0.5 * (target - output) ** 2 / sigma ** 2
     log_coeff = -no_dim * torch.log(sigma) - 0.5 * no_dim * np.log(2 * np.pi)
@@ -125,6 +125,8 @@ class RegNetBase(nn.Sequential):
 
         if output_dim == 2:
             self.add_module('var_split', SplitDim(correction=apply_var))
+        self.linear4.weight.data.uniform_(-init_w, init_w)
+        self.linear4.bias.data.uniform_(-init_w, init_w)
 
     def forward(self, x, output_features=False):
         if not output_features:

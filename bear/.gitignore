@@ -10,3 +10,5 @@ MANIFEST
 data
 
 uncertainty_modeling/rl_uncertainty/mc_dropout/model
+uncertainty_modeling/rl_uncertainty/rank1/model
+uncertainty_modeling/rl_uncertainty/swag/model
