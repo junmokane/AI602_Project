@@ -59,12 +59,12 @@ def experiment(variant):
     action_dim = eval_env.action_space.low.size
 
     M = variant['layer_size']
-    qf1 = FlattenMlp_Dropout(
+    qf1 = FlattenMlp(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
     )
-    qf2 = FlattenMlp_Dropout(
+    qf2 = FlattenMlp(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
@@ -108,8 +108,8 @@ def experiment(variant):
     load_hdf5(eval_env.unwrapped.get_dataset(), replay_buffer, max_size=variant['replay_buffer_size'])
 
     trainer = MUSATTrainer(
-        pre_model = args.pre_model,
-        env_name = args.env,
+        pre_model=args.pre_model,
+        env_name=args.env,
         env=eval_env,
         policy=policy,
         qf1=qf1,

@@ -9,7 +9,8 @@ where, `env` refers to a d4rl environment, `policy_lr` is the policy learning ra
 
 # 12.11 MUSAT
 ```
-CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model 'rank1' --env 'halfcheetah-random-v0'
+CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model rank1 --env halfcheetah-random-v0
+CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model mc_dropout --env halfcheetah-expert-v0
 
 pre_model list : mc_dropout, swag, rank1
 
