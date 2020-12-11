@@ -88,7 +88,7 @@ class CovarianceSpace(Subspace):
         self.cov_mat_sqrt = torch.cat((self.cov_mat_sqrt, vector.view(1, -1)), dim=0)
         # print(type(self.rank), type(self.max_rank))
         # exit()
-        self.rank = torch.min(self.rank + 1, torch.as_tensor(float(self.max_rank))).view(-1)
+        self.rank = torch.min(self.rank + 1, torch.as_tensor(float(self.max_rank)).cuda()).view(-1)
 
 
     def get_space(self):

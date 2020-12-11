@@ -9,27 +9,65 @@ from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.torch_rl_algorithm import TorchTrainer
 from torch import autograd
 from rlkit.torch.networks import FlattenMlp_Dropout
+from uncertainty_modeling.rl_uncertainty.rank1.r1bnn import Model
+from uncertainty_modeling.rl_uncertainty.model import RegNetBase, SWAG
 
 
-model = FlattenMlp_Dropout( # Check the dropout layer!
-            input_size=23,
+def unc_premodel(env, env_name, model_name):
+    path = './uncertainty_modeling/rl_uncertainty'
+    obs_dim = env.observation_space.low.size
+    action_dim = env.action_space.low.size
+    input_size = obs_dim + action_dim
+    model = None
+    if model_name == 'mc_dropout':
+        model = FlattenMlp_Dropout(  # Check the dropout layer!
+            input_size=input_size,
             output_size=1,
             hidden_sizes=[256, 256],
         ).cuda()
-model.load_state_dict(torch.load('./rl_dropout_140.pt')) # write the path of the pre-trained model
+    if model_name == 'rank1':
+        model = Model(x_dim=input_size, h_dim=10, y_dim=1, n=10).cuda()
+    if model_name == 'swag':
+        kwargs = {"dimensions": [200, 50, 50, 50],
+                  "output_dim": 1,
+                  "input_dim": input_size}
+        args = list()
+        model = SWAG(RegNetBase, subspace_type="pca", *args, **kwargs,
+                     subspace_kwargs={"max_rank": 10, "pca_rank": 10})
+        model.cuda()
+    if model == None:
+        raise AttributeError
+    else:
+        model.load_state_dict(torch.load('{}/{}/model/{}/model_200.pt'.format(path, model_name, env_name)))
+        if model_name == 'swag':
+            model.sample(scale=10.)
+        return model
 
 
-def uncertainty(state, action, rep, beta):
+
+def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
     with torch.no_grad():
         batch_size = state.shape[0]
+
+        if pre_model_name == 'rank1':
+           rep = rep // pre_model.n
+
         state_cp = state.unsqueeze(1).repeat(1, rep, 1).view(state.shape[0] * rep, state.shape[1])
         action_cp = action.unsqueeze(1).repeat(1, rep, 1).view(action.shape[0] * rep, action.shape[1])
+        target_qf1 = pre_model(torch.cat([state_cp, action_cp], dim=1))  # BTx1
 
-        target_qf1 = model(torch.cat([state_cp, action_cp], dim=1))  # BTx1
-        target_qf1 = target_qf1.view(batch_size, rep, 1)  # BxTx1
+        if pre_model_name == 'rank1':
+            rep = rep * pre_model.n
+            target_qf1 = target_qf1.view(rep, batch_size, 1)  # BxTx1
 
-        q_sq = torch.mean(target_qf1 ** 2, dim=1)  # Bx1
-        q_mean_sq = torch.mean(target_qf1, dim=1) ** 2  # Bx1
+            q_sq = torch.mean(target_qf1 ** 2, dim=0)  # Bx1
+            q_mean_sq = torch.mean(target_qf1, dim=0) ** 2  # Bx1
+        else:
+            target_qf1 = target_qf1.view(batch_size, rep, 1)  # BxTx1
+
+            q_sq = torch.mean(target_qf1 ** 2, dim=1)  # Bx1
+            q_mean_sq = torch.mean(target_qf1, dim=1) ** 2  # Bx1
+
         # var = torch.std(target_qf1, dim=1)
         var = q_sq - q_mean_sq
         unc = beta / var  # Bx1
@@ -40,6 +78,8 @@ def uncertainty(state, action, rep, beta):
 class MUSATTrainer(TorchTrainer):
     def __init__(
             self,
+            pre_model,
+            env_name,
             env,
             policy,
             qf1,
@@ -129,6 +169,8 @@ class MUSATTrainer(TorchTrainer):
         self._policy_update_ctr = 0
         self._num_q_update_steps = 0
         self._num_policy_update_steps = 0
+        self.pre_model = unc_premodel(self.env, env_name, pre_model)
+        self.pre_model_name = pre_model
 
     def eval_q_custom(self, custom_policy, data_batch, q_function=None):
         if q_function is None:
@@ -211,7 +253,7 @@ class MUSATTrainer(TorchTrainer):
 
         qf1_pred = self.qf1(obs, actions)  # Bx1
         qf2_pred = self.qf2(obs, actions)  # Bx1
-        critic_unc = self.uncertainty(next_obs, next_action, self.T, self.beta)
+        critic_unc = uncertainty(next_obs, next_action, self.T, self.beta, self.pre_model, self.pre_model_name)
         qf1_loss = ((qf1_pred - target_Q.detach()).pow(2) * critic_unc).mean()
         qf2_loss = ((qf2_pred - target_Q.detach()).pow(2) * critic_unc).mean()
 
@@ -235,7 +277,7 @@ class MUSATTrainer(TorchTrainer):
 
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
-        actor_unc = uncertainty(obs, actor_samples[:, 0, :], self.T, self.beta)
+        actor_unc = uncertainty(obs, actor_samples[:, 0, :], self.T, self.beta, self.pre_model, self.pre_model_name)
 
 
         if self.policy_update_style == '0':

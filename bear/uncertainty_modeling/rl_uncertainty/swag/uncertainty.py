@@ -17,6 +17,7 @@ path = './uncertainty_modeling/rl_uncertainty/swag/model'
 os.makedirs('{}/{}'.format(path, opts.env_name), exist_ok = True)
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 # Tensor = torch.Tensor
+print('GPU is not used')
 
 discount = 0.99
 
@@ -43,10 +44,12 @@ def train():
 
     ## Choose the training model
     model = RegNetBase(*args, **kwargs).type(Tensor) # Simple 5-layer fully-connected network
+    model.state_dict(torch.load('{}/{}/model_180.pt'.format(path, opts.env_name)))
     # swag part
     swag_model = SWAG(RegNetBase, subspace_type="pca", *args, **kwargs,
                       subspace_kwargs={"max_rank": 10, "pca_rank": 10}).type(Tensor)
-    swag_start = 200
+    print(swag_model)
+    swag_start = 0
 
     ## Choose the optimizer to train
     optim = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -78,7 +81,7 @@ def train():
         print('[Epoch : %d/%d] [loss : %f] ' % (ep, epoch, np.mean(np.array(loss_buffer))))
 
         if ep % 20 == 0:
-            torch.save(model.state_dict(), '{}/{}/model_{}.pt'.format(path, opts.env_name, ep))
+            torch.save(swag_model.state_dict(), '{}/{}/swag_model_{}.pt'.format(path, opts.env_name, ep))
 
     test()
 

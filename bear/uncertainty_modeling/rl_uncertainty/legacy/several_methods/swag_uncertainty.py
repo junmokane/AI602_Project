@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from datasets import ScatterDataset, GymDataset
 from torch.autograd import Variable
 import os
-from bear.rlkit.torch.networks import FlattenMlp
+# from bear.rlkit.torch.networks import FlattenMlp
 import numpy as np
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -89,14 +89,14 @@ def test():
 
     with torch.no_grad():
         ## Load testing dataset
-        data = np.load('reg_data/test_data.npy')
+        # data = np.load('reg_data/test_data.npy')
         z = np.reshape(np.linspace(-3, 3, 100), [-1, 1])
         input_ = torch.from_numpy(z.astype(np.float32)).type(Tensor)
 
         trajectories = []
         ## Iterative test for each model
         for i in range(10):
-            model.load_state_dict(torch.load("ckpts/swag_checkpoint0-300.pt")["state_dict"]) # if not handling ensemble
+            # model.load_state_dict(torch.load("ckpts/swag_checkpoint0-300.pt")["state_dict"]) # if not handling ensemble
             print(model.subspace.cov_mat_sqrt)
             model.sample(scale=10.)
             output_ = model(input_).cpu().numpy().T
@@ -105,5 +105,5 @@ def test():
         # plot_predictive(data, trajectories, z, title="Swag_Confidence 95%")
 
 ## What to do for running
-train()
-# test()
+# train()
+test()

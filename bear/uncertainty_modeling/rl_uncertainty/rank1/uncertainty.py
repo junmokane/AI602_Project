@@ -1,4 +1,4 @@
-from uncertainty_modeling.rl_uncertainty.model import *
+from uncertainty_modeling.rl_uncertainty.model import
 import torch
 from torch.utils.data import DataLoader
 from uncertainty_modeling.rl_uncertainty.datasets import GymDataset
@@ -9,7 +9,7 @@ import numpy as np
 import argparse
 import gym
 import d4rl
-from uncertainty_modeling.rl_uncertainty.rank1_dropout.r1bnn import Model
+from uncertainty_modeling.rl_uncertainty.rank1.r1bnn import Model
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", type=str, default='halfcheetah-expert-v0', help="designate task name")
@@ -37,7 +37,7 @@ def train():
     )
 
     ## Choose the training model
-    model = Model(x_dim=23, h_dim=10, y_dim=1, n=10).cuda()
+    model = Model(x_dim=input_size, h_dim=10, y_dim=1, n=10).cuda()
 
     print(model)
 

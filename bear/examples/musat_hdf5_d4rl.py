@@ -108,6 +108,8 @@ def experiment(variant):
     load_hdf5(eval_env.unwrapped.get_dataset(), replay_buffer, max_size=variant['replay_buffer_size'])
 
     trainer = MUSATTrainer(
+        pre_model = args.pre_model,
+        env_name = args.env,
         env=eval_env,
         policy=policy,
         qf1=qf1,
@@ -131,11 +133,10 @@ def experiment(variant):
     algorithm.to(ptu.device)
     algorithm.train()
 
-
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     parser = argparse.ArgumentParser(description='MUSAT-runs')
-    parser.add_argument("--env", type=str, default='relocate-human-v0')
+    parser.add_argument("--env", type=str, default='halfcheetah-random-v0')
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
@@ -144,6 +145,7 @@ if __name__ == "__main__":
     parser.add_argument('--target_mmd_thresh', default=0.05, type=float)
     parser.add_argument('--num_samples', default=100, type=int)
     parser.add_argument('--seed', default=0, type=int)
+    parser.add_argument('--pre_model', default='swag', type=str)
     args = parser.parse_args()
 
     variant = dict(

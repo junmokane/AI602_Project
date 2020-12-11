@@ -7,6 +7,14 @@ python scripts/plot.py ./data/bear-halfcheetah-expert-v0/ --f "evaluation/Return
 ```
 where, `env` refers to a d4rl environment, `policy_lr` is the policy learning rate.
 
+# 12.11 MUSAT
+```
+CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model 'rank1' --env 'halfcheetah-random-v0'
+
+pre_model list : mc_dropout, swag, rank1
+```
+
+
 We use the following hyperparameters for the results in the D4RL paper:
 - Hopper: `kernel_type=laplacian`, `mmd_sigma=20`, `num_samples=100`
 - Walker2d: `kernel_type=laplacian`, `mmd_sigma=20`, `num_samples=100`

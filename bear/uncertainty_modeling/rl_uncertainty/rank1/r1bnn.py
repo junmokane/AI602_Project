@@ -5,7 +5,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from uncertainty_modeling.rl_uncertainty.rank1_dropout.set_encoder import LatentPerturber
+from uncertainty_modeling.rl_uncertainty.rank1.set_encoder import LatentPerturber
 # from utils import ConvArgs
 
 
