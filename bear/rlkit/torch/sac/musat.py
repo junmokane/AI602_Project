@@ -38,9 +38,14 @@ def unc_premodel(env, env_name, model_name):
     if model == None:
         raise AttributeError
     else:
+<<<<<<< HEAD
         model.load_state_dict(torch.load('{}/{}/model/{}/model_200.pt'.format(path, model_name, env_name)))
+=======
+        model.load_state_dict(torch.load('{}/{}/model/{}/model_1800.pt'.format(path, model_name, env_name)))
+        if model_name == 'swag':
+            model.sample(scale=10.)
+>>>>>>> d96932c23d1d0d10802e9a3c7d38f17fe8098815
         return model
-
 
 
 def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
@@ -80,6 +85,7 @@ def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
         # TODO: clipping on uncertainty
         unc_critic = torch.clamp(unc, 0.0, 1.5)
     return unc_critic
+
 
 class MUSATTrainer(TorchTrainer):
     def __init__(
@@ -125,8 +131,13 @@ class MUSATTrainer(TorchTrainer):
         self.vae = vae
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
+<<<<<<< HEAD
         self.T = 10
         self.beta = 1
+=======
+        self.T = 100
+        self.beta = 0.8
+>>>>>>> d96932c23d1d0d10802e9a3c7d38f17fe8098815
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths
@@ -285,13 +296,22 @@ class MUSATTrainer(TorchTrainer):
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
         actor_unc = uncertainty(obs, actor_samples[:, 0, :], self.T, self.beta, self.pre_model, self.pre_model_name)
 
-
         if self.policy_update_style == '0':
             policy_loss = torch.min(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
         elif self.policy_update_style == '1':
             policy_loss = torch.mean(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
 
-        policy_loss = (-policy_loss).mean()
+        # Use uncertainty after some epochs
+        if self._n_train_steps_total >= 40000:
+            if self.mode == 'auto':
+                policy_loss = (-policy_loss + self.log_alpha.exp() * (mmd_loss - self.target_mmd_thresh)).mean()
+            else:
+                policy_loss = (-policy_loss + 100 * mmd_loss).mean()
+        else:
+            if self.mode == 'auto':
+                policy_loss = (self.log_alpha.exp() * (mmd_loss - self.target_mmd_thresh)).mean()
+            else:
+                policy_loss = 100 * mmd_loss.mean()
 
         """
         Update Networks
@@ -376,22 +396,6 @@ class MUSATTrainer(TorchTrainer):
 
     def end_epoch(self, epoch):
         self._need_to_update_eval_statistics = True
-
-    def unc_mc_dropout(self, obs, action):
-        with torch.no_grad():
-            state_cp = obs.unsqueeze(1).repeat(1, self.T, 1).view(obs.shape[0] * self.T, obs.shape[1])
-            action_cp = action.unsqueeze(1).repeat(1, self.T, 1).view(action.shape[0] * self.T, action.shape[1])
-            target_q1 = self.qf1(state_cp, action_cp)  # BTx1
-            target_q2 = self.qf2(state_cp, action_cp)  # BTx1
-            target_q1 = target_q1.view(obs.shape[0], self.T, 1)  # BxTx1
-            target_q2 = target_q2.view(obs.shape[0], self.T, 1)  # BxTx1
-            target_q = torch.cat((target_q1, target_q2), dim=1)  # Bx2Tx1
-            q_sq = torch.mean(target_q ** 2, dim=1)  # Bx1
-            q_mean_sq = torch.mean(target_q, dim=1) ** 2
-            var = q_sq - q_mean_sq
-            unc = self.beta / var  # Bx1
-            unc = torch.clamp(unc, 0.0, 1.5)
-        return unc.detach()
 
     @property
     def networks(self):
