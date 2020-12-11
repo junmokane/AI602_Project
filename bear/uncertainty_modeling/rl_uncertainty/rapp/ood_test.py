@@ -44,7 +44,7 @@ def test():
     ## Choose the training model
     model = RaPP(23)
 
-    model.load_state_dict(torch.load("{}/{}/model_80.pt".format(path, opts.env_name)))  # if not handling ensemble
+    # model.load_state_dict(torch.load("{}/{}/model_80.pt".format(path, opts.env_name)))  # if not handling ensemble
 
     id_temp = []
     od_temp = []
@@ -58,10 +58,20 @@ def test():
             ## Load testing dataset
             id_trajectories, ood_trajectories = [], []
             ## Iterative test for each mode
-            id_output_ = model(id_obs_act)
-            ood_output_ = model(ood_obs_act)
-            id_sigma = get_diffs(id_output_, model)
-            ood_sigma = get_diffs(ood_output_, model)
+            # id_output_ = model(id_obs_act)
+            # ood_output_ = model(ood_obs_act)
+            # id_sigma = get_diffs(id_output_, model)
+            # ood_sigma = get_diffs(ood_output_, model)
+
+            id_dif = get_diffs(id_obs_act, model)
+            ood_dif = get_diffs(ood_obs_act, model)
+            id_difs = torch.cat([torch.from_numpy(i) for i in id_dif], dim=-1).numpy()
+            ood_difs = torch.cat([torch.from_numpy(i) for i in ood_dif], dim=-1).numpy()
+            print(id_difs.shape, ood_difs.shape) # (400, 49), (400, 49)
+            id_dif = (id_difs**2).mean(axis=1)
+            ood_dif = (ood_difs**2).mean(axis=1)
+            print(id_dif.shape, ood_dif.shape)  # (400,), (400,) id_dif will be differnce between in-dist
+
             # print(len(id_sigma))
             # print(len(ood_sigma))
             print('id_sigma : {}, ood_sigma : {}'.format(np.mean(id_sigma), np.mean(ood_sigma)))
