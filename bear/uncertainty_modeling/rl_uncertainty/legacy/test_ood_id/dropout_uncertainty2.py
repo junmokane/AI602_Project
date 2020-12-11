@@ -1,10 +1,10 @@
-from model import *
+from .model import *
 import torch
 from torch.utils.data import DataLoader
-from ood_datasets import ScatterDataset, GymDataset, GymDataset_test
+from .ood_datasets import ScatterDataset, GymDataset, GymDataset_test
 from torch.autograd import Variable
 import os
-from bear.rlkit.torch.networks import FlattenMlp_Dropout
+from rlkit.torch.networks import FlattenMlp_Dropout
 import numpy as np
 
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
@@ -38,7 +38,7 @@ def train():
         model = FlattenMlp_Dropout(
             input_size=23,
             output_size=1,
-            hidden_sizes=[128, 128],
+            hidden_sizes=[256, 256],
         )
 
         ## Choose the optimizer to train
@@ -113,5 +113,5 @@ def test():
             print('id_sigma : {}, ood_sigma : {}'.format(np.mean(id_sigma), np.mean(ood_sigma)))
 
 ## What to do for running
-# train()
-test()
+train()
+# test()

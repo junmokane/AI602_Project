@@ -7,6 +7,15 @@ python scripts/plot.py ./data/bear-halfcheetah-expert-v0/ --f "evaluation/Return
 ```
 where, `env` refers to a d4rl environment, `policy_lr` is the policy learning rate.
 
+Input dimension
+half-cheetah : 23
+hopper : 14
+walker2d : 23
+pen-human : 69
+hammer-human : 72
+door-human : 67
+relocate : 69
+
 # 12.11 MUSAT
 ```
 CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model rank1 --env halfcheetah-random-v0

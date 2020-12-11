@@ -1,4 +1,4 @@
-from uncertainty_modeling.rl_uncertainty.model import
+from uncertainty_modeling.rl_uncertainty.model import *
 import torch
 from torch.utils.data import DataLoader
 from uncertainty_modeling.rl_uncertainty.datasets import GymDataset
@@ -13,8 +13,12 @@ from uncertainty_modeling.rl_uncertainty.rank1.r1bnn import Model
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", type=str, default='halfcheetah-expert-v0', help="designate task name")
+parser.add_argument("--ood_test", type=bool, default=False, help="designate task name")
 opts = parser.parse_args()
-path = './uncertainty_modeling/rl_uncertainty/rank1/model'
+if opts.ood_test == False:
+    path = './uncertainty_modeling/rl_uncertainty/rank1/model'
+else:
+    path = './uncertainty_modeling/rl_uncertainty/rank1/ood_model'
 os.makedirs('{}/{}'.format(path, opts.env_name), exist_ok = True)
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 # Tensor = torch.Tensor
@@ -30,7 +34,7 @@ def train():
     qf_criterion = torch.nn.MSELoss()
     dataloader = DataLoader(
         # ScatterDataset(path='reg_data/test_data.npy'),
-        GymDataset(env),
+        GymDataset(env, opts.ood_test, opts.env_name),
         batch_size=400,
         shuffle=True,
         num_workers= 8,

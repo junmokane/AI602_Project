@@ -20,8 +20,6 @@ train_data, index, meshgrid_data_lin = gen_datagrid(start=start, end=end, step=s
                                                     # function=dummy)
                                                     # type='random')
 
-
-
 ### Model and optimizer initialization
 model = RaPP()  # It is just Auto-Encoder
 optim = torch.optim.Adam(model.parameters())

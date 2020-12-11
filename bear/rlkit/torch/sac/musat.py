@@ -39,8 +39,6 @@ def unc_premodel(env, env_name, model_name):
         raise AttributeError
     else:
         model.load_state_dict(torch.load('{}/{}/model/{}/model_200.pt'.format(path, model_name, env_name)))
-        if model_name == 'swag':
-            model.sample(scale=10.)
         return model
 
 
@@ -52,9 +50,17 @@ def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
         if pre_model_name == 'rank1':
            rep = rep // pre_model.n
 
-        state_cp = state.unsqueeze(1).repeat(1, rep, 1).view(state.shape[0] * rep, state.shape[1])
-        action_cp = action.unsqueeze(1).repeat(1, rep, 1).view(action.shape[0] * rep, action.shape[1])
-        target_qf1 = pre_model(torch.cat([state_cp, action_cp], dim=1))  # BTx1
+        if pre_model_name == 'swag':
+            temp = []
+            for i in range(rep):
+                pre_model.sample(scale=10.)
+                target_qf1 = pre_model(torch.cat([state, action], dim=1))  # BTx1
+                temp.append(target_qf1)
+            target_qf1 = torch.cat(temp, dim=0)
+        else:
+            state_cp = state.unsqueeze(1).repeat(1, rep, 1).view(state.shape[0] * rep, state.shape[1])
+            action_cp = action.unsqueeze(1).repeat(1, rep, 1).view(action.shape[0] * rep, action.shape[1])
+            target_qf1 = pre_model(torch.cat([state_cp, action_cp], dim=1))  # BTx1
 
         if pre_model_name == 'rank1':
             rep = rep * pre_model.n
@@ -119,7 +125,7 @@ class MUSATTrainer(TorchTrainer):
         self.vae = vae
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
-        self.T = 100
+        self.T = 10
         self.beta = 1
 
         self.plotter = plotter

@@ -12,8 +12,12 @@ import d4rl
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", type=str, default='halfcheetah-expert-v0', help="designate task name")
+parser.add_argument("--ood_test", type=bool, default=False, help="designate task name")
 opts = parser.parse_args()
-path = './uncertainty_modeling/rl_uncertainty/swag/model'
+if opts.ood_test == False:
+    path = './uncertainty_modeling/rl_uncertainty/swag/model'
+else:
+    path = './uncertainty_modeling/rl_uncertainty/swag/ood_model'
 os.makedirs('{}/{}'.format(path, opts.env_name), exist_ok = True)
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 # Tensor = torch.Tensor
@@ -36,7 +40,7 @@ def train():
     qf_criterion = torch.nn.MSELoss()
     dataloader = DataLoader(
         # ScatterDataset(path='reg_data/test_data.npy'),
-        GymDataset(env),
+        GymDataset(env, opts.ood_test, opts.env_name),
         batch_size=400,
         shuffle=True,
         num_workers= 8,
@@ -44,12 +48,12 @@ def train():
 
     ## Choose the training model
     model = RegNetBase(*args, **kwargs).type(Tensor) # Simple 5-layer fully-connected network
-    model.state_dict(torch.load('{}/{}/model_180.pt'.format(path, opts.env_name)))
+    # model.state_dict(torch.load('{}/{}/model_180.pt'.format(path, opts.env_name)))
     # swag part
     swag_model = SWAG(RegNetBase, subspace_type="pca", *args, **kwargs,
                       subspace_kwargs={"max_rank": 10, "pca_rank": 10}).type(Tensor)
     print(swag_model)
-    swag_start = 0
+    swag_start = 50
 
     ## Choose the optimizer to train
     optim = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -81,7 +85,7 @@ def train():
         print('[Epoch : %d/%d] [loss : %f] ' % (ep, epoch, np.mean(np.array(loss_buffer))))
 
         if ep % 20 == 0:
-            torch.save(swag_model.state_dict(), '{}/{}/swag_model_{}.pt'.format(path, opts.env_name, ep))
+            torch.save(swag_model.state_dict(), '{}/{}/model_{}.pt'.format(path, opts.env_name, ep))
 
     test()
 

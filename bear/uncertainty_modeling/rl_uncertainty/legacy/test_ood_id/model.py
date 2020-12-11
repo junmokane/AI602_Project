@@ -2,8 +2,8 @@ import torch.nn as nn
 import torch
 import numpy as np
 import torch.nn.functional as F
-from utils import flatten, set_weights
-from subspaces import Subspace
+from uncertainty_modeling.rl_uncertainty.utils import flatten, set_weights
+from uncertainty_modeling.rl_uncertainty.subspaces import Subspace
 
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor

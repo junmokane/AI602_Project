@@ -12,8 +12,14 @@ import d4rl
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--env_name", type=str, default='halfcheetah-expert-v0', help="designate task name")
+parser.add_argument("--ood_test", type=bool, default=False, help="designate task name")
 opts = parser.parse_args()
-path = './uncertainty_modeling/rl_uncertainty/mc_dropout/model'
+
+if opts.ood_test == False:
+    path = './uncertainty_modeling/rl_uncertainty/mc_dropout/model'
+else:
+    path = './uncertainty_modeling/rl_uncertainty/mc_dropout/ood_model'
+
 os.makedirs('{}/{}'.format(path, opts.env_name), exist_ok = True)
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 # Tensor = torch.Tensor
@@ -34,7 +40,7 @@ def train():
     qf_criterion = torch.nn.MSELoss()
     dataloader = DataLoader(
         # ScatterDataset(path='reg_data/test_data.npy'),
-        GymDataset(env),
+        GymDataset(env, opts.ood_test, opts.env_name),
         batch_size=400,
         shuffle=True,
         num_workers= 8,

@@ -58,6 +58,9 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
 
+    print('dim : %d',obs_dim+action_dim)
+    exit()
+
     M = variant['layer_size']
     qf1 = FlattenMlp(
         input_size=obs_dim + action_dim,

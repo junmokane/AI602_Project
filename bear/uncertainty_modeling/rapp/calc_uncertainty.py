@@ -18,7 +18,7 @@ def uncertainty(data, M, k=5):
 
 
 # MakinaRocks RaPP
-def get_diffs(x, model, batch_size=256):
+def get_diffs(x, model, batch_size=200):
     model.eval()
     with torch.no_grad():
         batchified = x.split(batch_size)
