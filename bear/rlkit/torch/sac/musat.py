@@ -10,7 +10,7 @@ from rlkit.torch.torch_rl_algorithm import TorchTrainer
 from torch import autograd
 from rlkit.torch.networks import FlattenMlp_Dropout
 from uncertainty_modeling.rl_uncertainty.rank1.r1bnn import Model
-from uncertainty_modeling.rl_uncertainty.model import RegNetBase, SWAG
+from uncertainty_modeling.rl_uncertainty.model import RegNetBase, SWAG, RaPP, get_diffs
 
 
 def unc_premodel(env, env_name, model_name):
@@ -27,6 +27,8 @@ def unc_premodel(env, env_name, model_name):
         ).cuda()
     if model_name == 'rank1':
         model = Model(x_dim=input_size, h_dim=10, y_dim=1, n=10).cuda()
+    if model_name == 'rapp':
+        model = RaPP(input_size).cuda()
     if model_name == 'swag':
         kwargs = {"dimensions": [200, 50, 50, 50],
                   "output_dim": 1,
@@ -38,19 +40,24 @@ def unc_premodel(env, env_name, model_name):
     if model == None:
         raise AttributeError
     else:
-<<<<<<< HEAD
-        model.load_state_dict(torch.load('{}/{}/model/{}/model_200.pt'.format(path, model_name, env_name)))
-=======
-        model.load_state_dict(torch.load('{}/{}/model/{}/model_1800.pt'.format(path, model_name, env_name)))
-        if model_name == 'swag':
-            model.sample(scale=10.)
->>>>>>> d96932c23d1d0d10802e9a3c7d38f17fe8098815
+        model.load_state_dict(torch.load('{}/{}/model/{}/model_1980.pt'.format(path, model_name, env_name)))
+
         return model
 
 
 def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
     with torch.no_grad():
         batch_size = state.shape[0]
+
+        if pre_model_name == 'rapp':
+            dif = get_diffs(torch.cat([state, action], dim=1), pre_model)
+            difs = torch.cat([torch.from_numpy(i) for i in dif], dim=-1).cuda()
+            dif = (difs ** 2).mean(axis=1)
+            unc = beta / dif  # Bx1
+            unc = unc.unsqueeze(1)
+            # TODO: clipping on uncertainty
+            unc_critic = torch.clamp(unc, 0.0, 1.5)
+            return unc_critic
 
         if pre_model_name == 'rank1':
            rep = rep // pre_model.n
@@ -131,13 +138,8 @@ class MUSATTrainer(TorchTrainer):
         self.vae = vae
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
-<<<<<<< HEAD
-        self.T = 10
-        self.beta = 1
-=======
         self.T = 100
-        self.beta = 0.8
->>>>>>> d96932c23d1d0d10802e9a3c7d38f17fe8098815
+        self.beta = 1.0
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths

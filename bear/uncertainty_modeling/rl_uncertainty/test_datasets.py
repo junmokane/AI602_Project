@@ -69,13 +69,24 @@ class GymDataset(Dataset):
                 raise TypeError
 
 
-        id_obs = _obs[id_action_idx]
-        id_action = _actions[id_action_idx]
-        ood_obs = _obs[ood_action_idx]
-        ood_action = _actions[ood_action_idx]
+            id_obs = _obs[id_action_idx]
+            id_action = _actions[id_action_idx]
+            ood_obs = _obs[ood_action_idx]
+            ood_action = _actions[ood_action_idx]
 
-        self.id_obs_act = np.concatenate([id_obs, id_action], axis=1)
-        self.ood_obs_act = np.concatenate([ood_obs, ood_action], axis=1)
+            self.id_obs_act = np.concatenate([id_obs, id_action], axis=1)
+            self.ood_obs_act = np.concatenate([ood_obs, ood_action], axis=1)
+
+        else:
+            id_obs = np.repeat(_obs, 2, axis = 0)
+            id_action = np.repeat(_actions, 2, axis = 0)
+            ood_obs = np.repeat(_obs, 2, axis = 0)
+            ood_action = np.concatenate([np.ones_like(_actions), -np.ones_like(_actions)], axis=0)
+
+            self.id_obs_act = np.concatenate([id_obs, id_action], axis=1)
+            self.ood_obs_act = np.concatenate([ood_obs, ood_action], axis=1)
+
+
 
 
     def __getitem__(self, index):

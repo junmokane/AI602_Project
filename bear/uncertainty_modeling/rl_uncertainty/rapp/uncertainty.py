@@ -63,3 +63,5 @@ def train():
 
         if ep % 20 == 0:
             torch.save(model.state_dict(), '{}/{}/model_{}.pt'.format(path, opts.env_name, ep))
+
+train()

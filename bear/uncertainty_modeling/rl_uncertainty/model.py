@@ -8,6 +8,31 @@ from uncertainty_modeling.rl_uncertainty.subspaces import Subspace
 
 Tensor = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.Tensor
 init_w=3e-3
+
+def get_diffs(x, model, batch_size=256):
+    model.eval()
+    with torch.no_grad():
+        batchified = x.split(batch_size)
+        stacked = []
+        for _x in batchified:
+            model.eval()
+            diffs = []
+            _x = _x.to(next(model.parameters()).device).float()
+            x_tilde = model(_x)
+            diffs.append((x_tilde - _x).cpu())
+
+            for layer in model.enc_layer_list:
+                _x = layer(_x)
+                x_tilde = layer(x_tilde)
+                diffs.append((x_tilde - _x).cpu())
+
+            stacked.append(diffs)
+
+        stacked = list(zip(*stacked))
+        diffs = [torch.cat(s, dim=0).numpy() for s in stacked]
+
+    return diffs
+
 def log_gaussian_loss(output, target, sigma, no_dim):
     exponent = -0.5 * (target - output) ** 2 / sigma ** 2
     log_coeff = -no_dim * torch.log(sigma) - 0.5 * no_dim * np.log(2 * np.pi)
@@ -256,22 +281,23 @@ class SWAG(torch.nn.Module):
 class RaPP(nn.Module):
     def __init__(self, in_dim):
         super(RaPP, self).__init__()
-        self.enc_layer_list = [nn.Linear(in_dim, 4),
+        dim_step = in_dim // 8 + 1
+        self.enc_layer_list = [nn.Linear(in_dim, in_dim - dim_step * 1),
                                nn.ReLU(True),
-                                nn.Linear(4, 4),
+                                nn.Linear(in_dim - dim_step * 1, in_dim - dim_step * 2),
                                 nn.ReLU(True),
-                                nn.Linear(4, 4),
+                                nn.Linear(in_dim - dim_step * 2, in_dim - dim_step * 3),
                                 nn.ReLU(True),
-                                nn.Linear(4, 2)
+                                nn.Linear(in_dim - dim_step * 3, in_dim // 2)
                                ]
         self.encoder = nn.Sequential(*self.enc_layer_list)
-        self.decoder = nn.Sequential(nn.Linear(2, 4),
+        self.decoder = nn.Sequential(nn.Linear(in_dim // 2, in_dim - dim_step * 3),
                                      nn.ReLU(True),
-                                     nn.Linear(4, 4),
+                                     nn.Linear(in_dim - dim_step * 3, in_dim - dim_step * 2),
                                      nn.ReLU(True),
-                                     nn.Linear(4, 4),
+                                     nn.Linear(in_dim - dim_step * 2, in_dim - dim_step * 1),
                                      nn.ReLU(True),
-                                     nn.Linear(4, in_dim))
+                                     nn.Linear(in_dim - dim_step * 1, in_dim))
 
     def forward(self, x):
         return self.decoder(self.encoder(x))

@@ -36,22 +36,24 @@ def test():
     dataloader = DataLoader(
         # ScatterDataset(path='reg_data/test_data.npy'),
         GymDataset(env, opts.ood_test, opts.env_name),
-        batch_size=400,
+        batch_size=10000,
         shuffle=True,
         num_workers=8,
     )
 
     ## Choose the training model
-    model = RaPP(23)
+    model = RaPP(input_size).cuda()
 
-    # model.load_state_dict(torch.load("{}/{}/model_80.pt".format(path, opts.env_name)))  # if not handling ensemble
+    model.load_state_dict(torch.load("{}/{}/model_1980.pt".format(path, opts.env_name)))  # if not handling ensemble
 
-    id_temp = []
-    od_temp = []
+    min_id_temp = []
+    max_id_temp = []
+    min_od_temp = []
+    max_od_temp = []
     count = 0
     for i, data in enumerate(dataloader):
-        id_obs_act = Variable(data['id_obs_act'])
-        ood_obs_act = Variable(data['ood_obs_act'])
+        id_obs_act = Variable(data['id_obs_act'].cuda())
+        ood_obs_act = Variable(data['ood_obs_act'].cuda())
         # if i == 0 :
         count = count+1
         with torch.no_grad():
@@ -67,18 +69,23 @@ def test():
             ood_dif = get_diffs(ood_obs_act, model)
             id_difs = torch.cat([torch.from_numpy(i) for i in id_dif], dim=-1).numpy()
             ood_difs = torch.cat([torch.from_numpy(i) for i in ood_dif], dim=-1).numpy()
-            print(id_difs.shape, ood_difs.shape) # (400, 49), (400, 49)
+            # print(id_difs.shape, ood_difs.shape) # (400, 49), (400, 49)
             id_dif = (id_difs**2).mean(axis=1)
             ood_dif = (ood_difs**2).mean(axis=1)
-            print(id_dif.shape, ood_dif.shape)  # (400,), (400,) id_dif will be differnce between in-dist
-
+            min_id_temp.append(np.min(id_dif))
+            max_id_temp.append(np.max(id_dif))
+            min_od_temp.append(np.min(ood_dif))
+            max_od_temp.append(np.max(ood_dif))
+            # print(id_dif.shape, ood_dif.shape)  # (400,), (400,) id_dif will be differnce between in-dist
             # print(len(id_sigma))
             # print(len(ood_sigma))
-            print('id_sigma : {}, ood_sigma : {}'.format(np.mean(id_sigma), np.mean(ood_sigma)))
+            print('min_id : {}, max_id : {}, mean_id : {}, min_ood : {}, max_ood : {}, mean_ood : {}'\
+                  .format(min(min_id_temp), max(max_id_temp), np.mean(id_dif), min(min_od_temp), max(max_od_temp), np.mean(ood_dif)))
+    print('min_id : {}, max_id : {}, min_ood : {}, max_ood : {}'.format(min(min_id_temp), max(max_id_temp), min(min_od_temp), max(max_od_temp)))
         # print('mean_id_sigma : {}, mean_ood_sigma : {}'.format(np.mean(id_temp), np.mean(od_temp)))
 
 
-def get_diffs(x, model, batch_size=23):
+def get_diffs(x, model, batch_size=256):
     model.eval()
     with torch.no_grad():
         batchified = x.split(batch_size)
