@@ -69,12 +69,12 @@ def experiment(variant):
         output_size=1,
         hidden_sizes=[M, M, ],
     )
-    target_qf1 = FlattenMlp(
+    target_qf1 = FlattenMlp_Dropout(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],
     )
-    target_qf2 = FlattenMlp(
+    target_qf2 = FlattenMlp_Dropout(
         input_size=obs_dim + action_dim,
         output_size=1,
         hidden_sizes=[M, M, ],

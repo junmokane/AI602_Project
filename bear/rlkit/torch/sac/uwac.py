@@ -172,19 +172,21 @@ class UWACTrainer(TorchTrainer):
             # Duplicate state 10 times (10 is a hyperparameter chosen by BCQ)
             state_rep = next_obs.unsqueeze(1).repeat(1, 10, 1).view(next_obs.shape[0] * 10, next_obs.shape[1])  # 10BxS
             # Compute value of perturbed actions sampled from the VAE
-            next_action = self.policy(next_obs)[0]
-            action_rep = next_action.unsqueeze(1).repeat(1, 10, 1).view(next_action.shape[0] * 10, next_action.shape[1])  # 10BxS
-            target_qf1 = self.target_qf1(state_rep, action_rep)
-            target_qf2 = self.target_qf2(state_rep, action_rep)
-
+            action_rep = self.policy(state_rep)[0]  # 10BxA
+            target_qf1 = self.target_qf1(state_rep, action_rep)  # 10Bx1
+            target_qf2 = self.target_qf2(state_rep, action_rep)  # 10Bx1
             # Soft Clipped Double Q-learning
-            target_Q = 0.75 * torch.min(target_qf1, target_qf2) + 0.25 * torch.max(target_qf1, target_qf2)
-            target_Q = target_Q.view(next_obs.shape[0], -1).max(1)[0].view(-1, 1)
+            target_Q = 0.75 * torch.min(target_qf1, target_qf2) + 0.25 * torch.max(target_qf1, target_qf2)  # 10Bx1
+            max_target_action = target_Q.view(next_obs.shape[0], -1).max(1)  # 10Bx1 > Bx10 > B,B
+            target_Q = max_target_action[0].view(-1, 1)  # B > Bx1
+            # 10BxA > Bx10xA > BxA
+            max_actions = action_rep.view(next_obs.shape[0], 10, action_rep.shape[1])[torch.arange(next_obs.shape[0]),
+                                                                                      max_target_action[1]]
             target_Q = self.reward_scale * rewards + (1.0 - terminals) * self.discount * target_Q  # Bx1
 
         qf1_pred = self.qf1(obs, actions)  # Bx1
         qf2_pred = self.qf2(obs, actions)  # Bx1
-        critic_unc = self.unc_mc_dropout(next_obs, next_action)
+        critic_unc = self.unc_mc_dropout(next_obs, max_actions, is_target=True)
         # print(torch.mean(critic_unc), torch.max(critic_unc), torch.min(critic_unc))
 
         # Use uncertainty after some epochs
@@ -211,7 +213,7 @@ class UWACTrainer(TorchTrainer):
 
         q_val1 = self.qf1(obs, actor_samples[:, 0, :])
         q_val2 = self.qf2(obs, actor_samples[:, 0, :])
-        actor_unc = self.unc_mc_dropout(obs, actor_samples[:, 0, :])
+        actor_unc = self.unc_mc_dropout(obs, actor_samples[:, 0, :], is_target=False)
 
         if self.policy_update_style == '0':
             policy_loss = torch.min(q_val1, q_val2)[:, 0] * actor_unc[:, 0]
@@ -314,12 +316,17 @@ class UWACTrainer(TorchTrainer):
     def end_epoch(self, epoch):
         self._need_to_update_eval_statistics = True
 
-    def unc_mc_dropout(self, obs, action):
+    def unc_mc_dropout(self, obs, action, is_target=True):
         with torch.no_grad():
             state_cp = obs.unsqueeze(1).repeat(1, self.T, 1).view(obs.shape[0] * self.T, obs.shape[1])
             action_cp = action.unsqueeze(1).repeat(1, self.T, 1).view(action.shape[0] * self.T, action.shape[1])
-            target_q1 = self.qf1(state_cp, action_cp)  # BTx1
-            target_q2 = self.qf2(state_cp, action_cp)  # BTx1
+            if not is_target:
+                target_q1 = self.qf1(state_cp, action_cp)  # BTx1
+                target_q2 = self.qf2(state_cp, action_cp)  # BTx1
+            else:
+                target_q1 = self.target_qf1(state_cp, action_cp)  # BTx1
+                target_q2 = self.target_qf2(state_cp, action_cp)  # BTx1
+
             target_q1 = target_q1.view(obs.shape[0], self.T, 1)  # BxTx1
             target_q2 = target_q2.view(obs.shape[0], self.T, 1)  # BxTx1
             target_q = torch.cat((target_q1, target_q2), dim=1)  # Bx2Tx1
