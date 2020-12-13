@@ -1,0 +1,6 @@
+python ./scripts/plot.py ./data/bear-hammer-cloned-v0 --f "trainer/Q Targets Mean,evaluation/Returns Mean" --d "./data/images/"
+python ./scripts/plot.py ./data/bear-hammer-expert-v0 --f "trainer/Q Targets Mean,evaluation/Returns Mean" --d "./data/images/"
+python ./scripts/plot.py ./data/bear-hammer-human-v0 --f "trainer/Q Targets Mean,evaluation/Returns Mean" --d "./data/images/"
+python ./scripts/plot.py ./data/bear-pen-human-v0 --f "trainer/Q Targets Mean,evaluation/Returns Mean" --d "./data/images/"
+python ./scripts/plot.py ./data/bear-pen-expert-v0 --f "trainer/Q Targets Mean,evaluation/Returns Mean" --d "./data/images/"
+python ./scripts/plot.py ./data/bear-pen-cloned-v0 --f "trainer/Q Targets Mean,evaluation/Returns Mean" --d "./data/images/"
