@@ -3,7 +3,7 @@ This codebase is built off of rlkit (https://github.com/vitchyr/rlkit/), and imp
 Then in order to run BEAR, an example command is:
 ```
 python examples/bear_hdf5_d4rl.py --env='halfcheetah-medium-v0' --policy_lr=1e-4 --num_samples=100
-python scripts/plot.py ./data/bear-halfcheetah-expert-v0/ --f "evaluation/Returns Mean,evaluation/Returns Max,trainer/Q Targets Mean"
+python scripts/plot.py ./data/bear-halfcheetah-expert-v0/ --f "evaluation/Returns Mean,trainer/Q Targets Mean"
 ```
 where, `env` refers to a d4rl environment, `policy_lr` is the policy learning rate.
 
@@ -19,6 +19,9 @@ relocate : 69
 # 12.11 MUSAT
 ```
 CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model rapp --env halfcheetah-expert-v0
+CUDA_VISIBLE_DEVICES='3' python -m examples.musat_hdf5_d4rl --pre_model rapp --env walker2d-expert-v0 --kernel_type laplacian --mmd_sigma 20 --num_samples 100 --beta 1e+1 --seed 10
+CUDA_VISIBLE_DEVICES='3' python -m examples.musat_hdf5_d4rl --pre_model rapp --env walker2d-expert-v0 --kernel_type laplacian --mmd_sigma 20 --num_samples 100 --beta 1e-1 --seed 1
+CUDA_VISIBLE_DEVICES='1' python -m examples.musat_hdf5_d4rl --pre_model rapp --env halfcheetah-random-v0 --kernel_type gaussian --mmd_sigma 20 --num_samples 100 --beta 1e0 --seed 0 --mode not_auto
 
 pre_model list : mc_dropout, swag, rank1, rapp
 rank1 pre_model link : https://drive.google.com/file/d/1gR9AstkLH2neAISAtxeMMmHoQKj9WniX/view?usp=sharing

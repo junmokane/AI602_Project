@@ -147,6 +147,7 @@ if __name__ == "__main__":
     parser.add_argument('--pre_model', default='swag', type=str)
     parser.add_argument('--beta', default=1.0, type=float)
     parser.add_argument('--seed', default=0, type=int)
+    parser.add_argument('--mode', default='auto', type=str)
     args = parser.parse_args()
 
     variant = dict(
@@ -176,7 +177,7 @@ if __name__ == "__main__":
             reward_scale=1,
 
             # BEAR specific params
-            mode='auto',
+            mode=args.mode,
             kernel_choice=args.kernel_type,
             policy_update_style='0',
             mmd_sigma=args.mmd_sigma,

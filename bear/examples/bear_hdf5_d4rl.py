@@ -141,6 +141,7 @@ if __name__ == "__main__":
     parser.add_argument('--target_mmd_thresh', default=0.05, type=float)
     parser.add_argument('--num_samples', default=100, type=int)
     parser.add_argument('--seed', default=0, type=int)
+    parser.add_argument('--mode', default='auto', type=str)
     args = parser.parse_args()
 
     variant = dict(
@@ -170,7 +171,7 @@ if __name__ == "__main__":
             reward_scale=1,
 
             # BEAR specific params
-            mode='auto',
+            mode=args.mode,
             kernel_choice=args.kernel_type,
             policy_update_style='0',
             mmd_sigma=args.mmd_sigma,
