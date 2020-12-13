@@ -53,8 +53,8 @@ def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
             dif = get_diffs(torch.cat([state, action], dim=1), pre_model)
             difs = torch.cat([torch.from_numpy(i) for i in dif], dim=-1).cuda()
             dif = (difs ** 2).mean(axis=1)
-            unc = beta / dif  # Bx1
-            unc = unc.unsqueeze(1)
+            unc = beta / dif  # B
+            unc = unc.unsqueeze(1) # Bx1
             # TODO: clipping on uncertainty
             unc_critic = torch.clamp(unc, 0.0, 1.5)
             return unc_critic
@@ -139,7 +139,7 @@ class MUSATTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 1.0
+        self.beta = 1e-1
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths

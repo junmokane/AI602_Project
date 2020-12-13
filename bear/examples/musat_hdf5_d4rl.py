@@ -197,7 +197,7 @@ if __name__ == "__main__":
                  script_name=None,
                  # **create_log_dir_kwargs
                  base_log_dir='./data',
-                 exp_id=2,
+                 exp_id=11,
                  seed=0)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
