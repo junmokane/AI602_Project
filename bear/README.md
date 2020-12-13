@@ -22,6 +22,7 @@ CUDA_VISIBLE_DEVICES='0' python -m examples.musat_hdf5_d4rl --pre_model rapp --e
 CUDA_VISIBLE_DEVICES='3' python -m examples.musat_hdf5_d4rl --pre_model rapp --env walker2d-expert-v0 --kernel_type laplacian --mmd_sigma 20 --num_samples 100 --beta 1e+1 --seed 10
 CUDA_VISIBLE_DEVICES='3' python -m examples.musat_hdf5_d4rl --pre_model rapp --env walker2d-expert-v0 --kernel_type laplacian --mmd_sigma 20 --num_samples 100 --beta 1e-1 --seed 1
 CUDA_VISIBLE_DEVICES='1' python -m examples.musat_hdf5_d4rl --pre_model rapp --env halfcheetah-random-v0 --kernel_type gaussian --mmd_sigma 20 --num_samples 100 --beta 1e0 --seed 0 --mode not_auto
+CUDA_VISIBLE_DEVICES='1' python -m examples.uwac_hdf5_d4rl --env halfcheetah-random-v0 --kernel_type gaussian --mmd_sigma 20 --num_samples 100 --mode not_aut
 
 pre_model list : mc_dropout, swag, rank1, rapp
 rank1 pre_model link : https://drive.google.com/file/d/1gR9AstkLH2neAISAtxeMMmHoQKj9WniX/view?usp=sharing
