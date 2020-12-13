@@ -127,6 +127,7 @@ class MUSATTrainer(TorchTrainer):
             target_mmd_thresh=0.05,
             num_samples_mmd_match=4,
             use_target_nets=True,
+            beta=1.0,
     ):
         super().__init__()
         self.env = env
@@ -139,7 +140,7 @@ class MUSATTrainer(TorchTrainer):
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
         self.T = 100
-        self.beta = 1e-1
+        self.beta = beta
 
         self.plotter = plotter
         self.render_eval_paths = render_eval_paths

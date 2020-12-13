@@ -144,8 +144,9 @@ if __name__ == "__main__":
     parser.add_argument('--kernel_type', default='gaussian', type=str)
     parser.add_argument('--target_mmd_thresh', default=0.05, type=float)
     parser.add_argument('--num_samples', default=100, type=int)
-    parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--pre_model', default='swag', type=str)
+    parser.add_argument('--beta', default=1.0, type=float)
+    parser.add_argument('--seed', default=0, type=int)
     args = parser.parse_args()
 
     variant = dict(
@@ -180,7 +181,7 @@ if __name__ == "__main__":
             policy_update_style='0',
             mmd_sigma=args.mmd_sigma,
             target_mmd_thresh=args.target_mmd_thresh,
-
+            beta=args.beta,
         ),
     )
 
@@ -197,7 +198,7 @@ if __name__ == "__main__":
                  script_name=None,
                  # **create_log_dir_kwargs
                  base_log_dir='./data',
-                 exp_id=11,
-                 seed=0)
+                 exp_id=2,
+                 seed=args.seed)  # if want to specify something more
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
