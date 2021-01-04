@@ -18,7 +18,9 @@ relocate : 69
 
 # 2021.01.04 point-robot
 ```
-CUDA_VISIBLE_DEVICES='1' python -m examples.sac --env point-robot --max_path_length 100 --num_epochs 100 --num_eval_steps_per_epoch 1000 --num_trains_per_train_loop 200 --num_expl_steps_per_train_loop 200 --min_num_steps_before_training 200
+CUDA_VISIBLE_DEVICES='1' python -m examples.sac --env point-robot --max_path_length 100 --num_epochs 300 --num_eval_steps_per_epoch 1000 --num_trains_per_train_loop 200 --num_expl_steps_per_train_loop 200 --min_num_steps_before_training 200
+CUDA_VISIBLE_DEVICES='1' python -m examples.sac --env point-robot --max_path_length 100 --num_epochs 150 --num_eval_steps_per_epoch 1000 --num_trains_per_train_loop 100 --num_expl_steps_per_train_loop 100 --min_num_steps_before_training 1000
+
 ```
 
 

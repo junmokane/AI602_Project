@@ -89,6 +89,10 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
             prefix='replay_buffer/'
         )
 
+        # If you want to save replay buffer as a whole, use this
+        snap_shot_dir = logger.get_snapshot_dir()
+        self.replay_buffer.save_buffer(snap_shot_dir + '/online_buffer.hdf5')
+
         """
         Trainer
         """

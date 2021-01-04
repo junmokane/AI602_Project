@@ -16,7 +16,7 @@ class PointEnv(Env):
 
     def __init__(self):
         self._goal = np.array([1.0, 1.0])
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(2,))
+        self.observation_space = spaces.Box(low=-0.1, high=1.1, shape=(2,))
         self.action_space = spaces.Box(low=-0.1, high=0.1, shape=(2,))
 
     def reset(self):
@@ -32,8 +32,11 @@ class PointEnv(Env):
         done = False
         if - reward < 0.1:
             done = True
-        ob = self._state
-        return ob, reward, done, dict()
+
+        lb = self.observation_space.low
+        ub = self.observation_space.high
+        self._state = np.clip(self._state, lb, ub)
+        return self._state, reward, done, dict()
 
     def render(self):
         print('current state:', self._state)

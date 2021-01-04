@@ -14,7 +14,7 @@ obs = env.reset()
 traj.append(obs)
 while True:
     action = env.action_space.sample()
-    action = np.array([2.0, 2.0])
+    # action = np.array([2.0, 2.0])
     print(action)
     obs, rew, d, _ = env.step(action)
     print(obs, rew)
