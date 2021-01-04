@@ -1,5 +1,8 @@
-from gym.envs.mujoco import HalfCheetahEnv
+import argparse
+import gym
+import d4rl
 
+from rlkit.envs import ENVS
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.envs.wrappers import NormalizedBoxEnv
@@ -12,8 +15,14 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 def experiment(variant):
-    expl_env = NormalizedBoxEnv(HalfCheetahEnv())
-    eval_env = NormalizedBoxEnv(HalfCheetahEnv())
+    env_name = variant['env_name']
+    if env_name in ENVS:
+        eval_env = NormalizedBoxEnv(ENVS[env_name]())
+        expl_env = eval_env
+    else:
+        eval_env = NormalizedBoxEnv(ENVS.make(variant['env_name']))
+        expl_env = eval_env
+
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
 
@@ -82,18 +91,35 @@ def experiment(variant):
 
 if __name__ == "__main__":
     # noinspection PyTypeChecker
+    parser = argparse.ArgumentParser(description='SAC-runs')
+    parser.add_argument("--env", type=str, default='halfcheetah-random-v0')
+    # training specs
+    parser.add_argument("--max_path_length", type=int, default=1000)
+    parser.add_argument("--num_epochs", type=int, default=500)
+    parser.add_argument("--num_eval_steps_per_epoch", type=int, default=5000)
+    parser.add_argument("--num_trains_per_train_loop", type=int, default=1000)
+    parser.add_argument("--num_expl_steps_per_train_loop", type=int, default=1000)
+    parser.add_argument("--min_num_steps_before_training", type=int, default=1000)
+
+    parser.add_argument("--gpu", default='0', type=str)
+    parser.add_argument('--qf_lr', default=3e-4, type=float)
+    parser.add_argument('--policy_lr', default=1e-4, type=float)
+    parser.add_argument('--seed', default=0, type=int)
+    args = parser.parse_args()
+
     variant = dict(
         algorithm="SAC",
         version="normal",
         layer_size=256,
         replay_buffer_size=int(1E6),
+        env_name=args.env,
         algorithm_kwargs=dict(
-            num_epochs=3000,
-            num_eval_steps_per_epoch=5000,
-            num_trains_per_train_loop=1000,
-            num_expl_steps_per_train_loop=1000,
-            min_num_steps_before_training=1000,
-            max_path_length=1000,
+            num_epochs=args.num_epochs,
+            num_eval_steps_per_epoch=args.num_eval_steps_per_epoch,
+            num_trains_per_train_loop=args.num_trains_per_train_loop,
+            num_expl_steps_per_train_loop=args.num_expl_steps_per_train_loop,
+            min_num_steps_before_training=args.min_num_steps_before_training,
+            max_path_length=args.max_path_length,
             batch_size=256,
         ),
         trainer_kwargs=dict(
@@ -106,6 +132,20 @@ if __name__ == "__main__":
             use_automatic_entropy_tuning=True,
         ),
     )
-    setup_logger('name-of-experiment', variant=variant)
-    # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
+    setup_logger(exp_prefix='sac-' + args.env,
+                 variant=variant,
+                 text_log_file="debug.log",
+                 variant_log_file="variant.json",
+                 tabular_log_file="progress.csv",
+                 snapshot_mode="gap_and_last",
+                 snapshot_gap=5,
+                 log_tabular_only=False,
+                 log_dir=None,
+                 git_infos=None,
+                 script_name=None,
+                 # **create_log_dir_kwargs
+                 base_log_dir='./data',
+                 exp_id=0,
+                 seed=args.seed)  # if want to specify something more
+    ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
