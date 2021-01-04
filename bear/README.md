@@ -17,10 +17,11 @@ door-human : 67
 relocate : 69
 
 # 2021.01.04 point-robot
+For point-robot task, exp_id are as follows. (sac based) sac : 0, offline sac : 1, (bear based) bear : 0, uwac : 1, musat : 2
 ```
 CUDA_VISIBLE_DEVICES='1' python -m examples.sac --env point-robot --max_path_length 100 --num_epochs 300 --num_eval_steps_per_epoch 1000 --num_trains_per_train_loop 200 --num_expl_steps_per_train_loop 200 --min_num_steps_before_training 200
 CUDA_VISIBLE_DEVICES='1' python -m examples.sac --env point-robot --max_path_length 100 --num_epochs 150 --num_eval_steps_per_epoch 1000 --num_trains_per_train_loop 100 --num_expl_steps_per_train_loop 100 --min_num_steps_before_training 1000
-
+CUDA_VISIBLE_DEVICES='3' python -m examples.offline_sac --env point-robot --max_path_length 100 --num_epochs 150 --num_eval_steps_per_epoch 1000 --num_trains_per_train_loop 100 --num_expl_steps_per_train_loop 100 --min_num_steps_before_training 1000
 ```
 
 
