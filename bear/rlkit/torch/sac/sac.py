@@ -82,6 +82,8 @@ class SACTrainer(TorchTrainer):
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
 
+        self.discrete = False
+
     def train_from_torch(self, batch):
         rewards = batch['rewards']
         terminals = batch['terminals']

@@ -29,7 +29,7 @@ def simulate_policy(args):
             env,
             policy,
             max_path_length=args.H,
-            render=True,
+            render=False,
         )
         if hasattr(env, "log_diagnostics"):
             env.log_diagnostics([path])

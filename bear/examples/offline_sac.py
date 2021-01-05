@@ -1,6 +1,7 @@
 import argparse
 import gym
 import d4rl
+import numpy as np
 
 from rlkit.envs import ENVS
 import rlkit.torch.pytorch_util as ptu
@@ -12,6 +13,34 @@ from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from rlkit.envs.read_hdf5 import get_dataset
+
+
+def load_hdf5(dataset, replay_buffer, max_size):
+    all_obs = dataset['observations']
+    all_act = dataset['actions']
+    N = min(all_obs.shape[0], max_size)
+
+    _obs = all_obs[:N-1]
+    _actions = all_act[:N-1]
+    _next_obs = all_obs[1:]
+    _rew = np.squeeze(dataset['rewards'][:N-1])
+    _rew = np.expand_dims(np.squeeze(_rew), axis=-1)
+    _done = np.squeeze(dataset['terminals'][:N-1])
+    _done = (np.expand_dims(np.squeeze(_done), axis=-1)).astype(np.int32)
+
+    max_length = 100
+    ctr = 0
+    ## Only for MuJoCo environments
+    ## Handle the condition when terminal is not True and trajectory ends due to a timeout
+    for idx in range(_obs.shape[0]):
+        if ctr >= max_length - 1:
+            ctr = 0
+        else:
+            replay_buffer.add_sample_only(_obs[idx], _actions[idx], _rew[idx], _next_obs[idx], _done[idx])
+            ctr += 1
+            if _done[idx][0]:
+                ctr = 0
 
 
 def experiment(variant):
@@ -65,6 +94,10 @@ def experiment(variant):
         variant['replay_buffer_size'],
         expl_env,
     )
+
+    file_path = './data/sac-point-robot/2021_01_04_22_25_16_exp_0000_s_0/offline_buffer_itr_140.hdf5'
+    load_hdf5(get_dataset(file_path), replay_buffer, max_size=variant['replay_buffer_size'])
+
     trainer = SACTrainer(
         env=eval_env,
         policy=policy,
@@ -81,6 +114,7 @@ def experiment(variant):
         exploration_data_collector=expl_path_collector,
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
+        batch_rl=True,  # this is for offline RL (False if online)
         **variant['algorithm_kwargs']
     )
     algorithm.to(ptu.device)
@@ -91,7 +125,7 @@ def experiment(variant):
 
 if __name__ == "__main__":
     # noinspection PyTypeChecker
-    parser = argparse.ArgumentParser(description='SAC-runs')
+    parser = argparse.ArgumentParser(description='OfflineSAC-runs')
     parser.add_argument("--env", type=str, default='halfcheetah-random-v0')
     # training specs
     parser.add_argument("--max_path_length", type=int, default=1000)
@@ -108,7 +142,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     variant = dict(
-        algorithm="SAC",
+        algorithm="OfflineSAC",
         version="normal",
         layer_size=256,
         replay_buffer_size=int(1E6),
@@ -145,7 +179,7 @@ if __name__ == "__main__":
                  script_name=None,
                  # **create_log_dir_kwargs
                  base_log_dir='./data',
-                 exp_id=0,
+                 exp_id=1,
                  seed=args.seed)  # if want to specify something more
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

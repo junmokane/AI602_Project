@@ -86,7 +86,7 @@ def plot_data(args):
             del csv
 
         plot_one(exp_names, csv_slices, feature, env_name, directory)
-    # plt.show()
+    plt.show()
 
 
 if __name__ == "__main__":
