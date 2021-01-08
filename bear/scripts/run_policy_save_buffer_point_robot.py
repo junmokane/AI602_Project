@@ -59,6 +59,7 @@ def simulate_policy(args):
             plt.plot(states[-1, 0], states[-1, 1], '-x', markersize=20)
             plt.show()
 
+    '''
     # Save trajectory
     observations = []
     actions = []
@@ -75,13 +76,15 @@ def simulate_policy(args):
     f['rewards'] = np.concatenate(rewards, axis=0)
     f['terminals'] = np.concatenate(terminals, axis=0)
     f.close()
+    '''
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=str,
                         help='path to the snapshot file')
-    parser.add_argument('--H', type=int, default=1000,
+    parser.add_argument('--H', type=int, default=100,
                         help='Max length of rollout')
     parser.add_argument('--buffer_size', type=int, default=16000,
                         help='The size of saving buffer')

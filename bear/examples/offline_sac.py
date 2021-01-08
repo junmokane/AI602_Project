@@ -49,7 +49,7 @@ def experiment(variant):
         eval_env = NormalizedBoxEnv(ENVS[env_name]())
         expl_env = eval_env
     else:
-        eval_env = NormalizedBoxEnv(ENVS.make(variant['env_name']))
+        eval_env = NormalizedBoxEnv(gym.make(variant['env_name']))
         expl_env = eval_env
 
     obs_dim = expl_env.observation_space.low.size
