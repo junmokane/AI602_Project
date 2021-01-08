@@ -42,7 +42,7 @@ if __name__ == "__main__":
                         help='path to the snapshot file')
     parser.add_argument('--H', type=int, default=1000,
                         help='Max length of rollout')
-    parser.add_argument('--gpu', action='store_false')
+    parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()
     print(args)
     simulate_policy(args)
