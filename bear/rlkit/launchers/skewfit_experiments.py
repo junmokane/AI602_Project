@@ -12,7 +12,7 @@ from rlkit.samplers.data_collector.vae_env import (
 )
 from rlkit.torch.her.her import HERTrainer
 from rlkit.torch.sac.policies import MakeDeterministic
-from rlkit.torch.sac.sac import SACTrainer
+from rlkit.torch.sac.sac_uncertainty import SACTrainer
 from rlkit.torch.skewfit.online_vae_algorithm import OnlineVaeAlgorithm
 from rlkit.util.io import load_local_or_remote_file
 from rlkit.util.video import dump_video

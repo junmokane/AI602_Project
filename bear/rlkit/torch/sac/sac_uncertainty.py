@@ -8,11 +8,66 @@ from torch import nn as nn
 import rlkit.torch.pytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.torch_rl_algorithm import TorchTrainer
+from rlkit.torch.networks import FlattenMlp_Dropout
+from uncertainty_modeling.rl_uncertainty.rank1.r1bnn import Model
+from uncertainty_modeling.rl_uncertainty.model import RegNetBase, SWAG, RaPP, get_diffs
 
+
+def unc_premodel(env, env_name, model_name):
+    path = './uncertainty_modeling/rl_uncertainty'
+    obs_dim = env.observation_space.low.size
+    action_dim = env.action_space.low.size
+    input_size = obs_dim + action_dim
+    model = None
+    if model_name == 'mc_dropout':
+        model = FlattenMlp_Dropout(  # Check the dropout layer!
+            input_size=input_size,
+            output_size=1,
+            hidden_sizes=[256, 256],
+        ).cuda()
+    if model_name == 'rank1':
+        model = Model(x_dim=input_size, h_dim=10, y_dim=1, n=10).cuda()
+    if model_name == 'rapp':
+        model = RaPP(input_size).cuda()
+    if model_name == 'swag':
+        kwargs = {"dimensions": [200, 50, 50, 50],
+                  "output_dim": 1,
+                  "input_dim": input_size}
+        args = list()
+        model = SWAG(RegNetBase, subspace_type="pca", *args, **kwargs,
+                     subspace_kwargs={"max_rank": 10, "pca_rank": 10})
+        model.cuda()
+    if model == None:
+        raise AttributeError
+    else:
+        model.load_state_dict(torch.load('{}/{}/model/{}/model_1980.pt'.format(path, model_name, env_name)))
+
+        return model
+
+
+def uncertainty(state, action, pre_model, pre_model_name):
+    with torch.no_grad():
+        if pre_model_name == 'rapp':
+            dif = get_diffs(torch.cat([state, action], dim=1), pre_model)
+            difs = torch.cat([torch.from_numpy(i) for i in dif], dim=-1).cuda()
+            dif = (difs ** 2).mean(axis=1)
+            '''
+            unc = beta / dif  # B
+            unc = unc.unsqueeze(1) # Bx1
+            # TODO: clipping on uncertainty
+            # unc_critic = torch.clamp(unc, 0.0, 1.5)
+            unc_critic = unc
+            '''
+            unc_critic = dif
+            return unc_critic
+        else:
+            exit()
 
 class SACTrainer(TorchTrainer):
     def __init__(
             self,
+            pre_model,
+            env_name,
             env,
             policy,
             qf1,
@@ -34,6 +89,8 @@ class SACTrainer(TorchTrainer):
 
             use_automatic_entropy_tuning=True,
             target_entropy=None,
+            policy_eval_start=0,
+            beta=1.0,
     ):
         super().__init__()
         self.env = env
@@ -44,6 +101,11 @@ class SACTrainer(TorchTrainer):
         self.target_qf2 = target_qf2
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
+
+        # variables for sac uncertainty
+        self._current_epoch = 0
+        self.policy_eval_start = policy_eval_start
+        self.beta = beta
 
         self.use_automatic_entropy_tuning = use_automatic_entropy_tuning
         if self.use_automatic_entropy_tuning:
@@ -83,8 +145,11 @@ class SACTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
 
         self.discrete = False
+        self.pre_model_name = pre_model
+        self.pre_model = unc_premodel(self.env, env_name, pre_model)
 
     def train_from_torch(self, batch):
+        self._current_epoch += 1
         rewards = batch['rewards']
         terminals = batch['terminals']
         obs = batch['observations']
@@ -92,7 +157,7 @@ class SACTrainer(TorchTrainer):
         next_obs = batch['next_observations']
 
         """
-        Policy and Alpha Loss
+        Policy and Alpha Loss and Beta Uncertainty Loss
         """
         new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
             obs, reparameterize=True, return_log_prob=True,
@@ -111,10 +176,15 @@ class SACTrainer(TorchTrainer):
             self.qf1(obs, new_obs_actions),
             self.qf2(obs, new_obs_actions),
         )
-        policy_loss = (alpha*log_pi - q_new_actions).mean()
+        # policy uncertainty
+        policy_unc = uncertainty(obs, new_obs_actions, self.pre_model, self.pre_model_name)[..., None].detach()
+        policy_loss = (alpha * log_pi - (q_new_actions - self.beta * policy_unc)).mean()
+        if self._current_epoch < self.policy_eval_start:
+            policy_log_prob = self.policy.log_prob(obs, actions)
+            policy_loss = (alpha * log_pi - policy_log_prob).mean()
 
         """
-        QF Loss
+        QF Loss and Beta Uncertainty Loss
         """
         q1_pred = self.qf1(obs, actions)
         q2_pred = self.qf2(obs, actions)
@@ -126,7 +196,9 @@ class SACTrainer(TorchTrainer):
             self.target_qf1(next_obs, new_next_actions),
             self.target_qf2(next_obs, new_next_actions),
         ) - alpha * new_log_pi
-
+        # critic uncertainty
+        critic_unc = uncertainty(next_obs, new_next_actions, self.pre_model, self.pre_model_name)[..., None]
+        target_q_values = target_q_values - self.beta * critic_unc
         q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_q_values
         qf1_loss = self.qf_criterion(q1_pred, q_target.detach())
         qf2_loss = self.qf_criterion(q2_pred, q_target.detach())

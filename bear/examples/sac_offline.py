@@ -99,8 +99,6 @@ def experiment(variant):
     load_hdf5(get_dataset(file_path), replay_buffer, max_size=variant['replay_buffer_size'])
 
     trainer = SACTrainer(
-        pre_model=args.pre_model,
-        env_name=args.env,
         env=eval_env,
         policy=policy,
         qf1=qf1,
@@ -127,7 +125,7 @@ def experiment(variant):
 
 if __name__ == "__main__":
     # noinspection PyTypeChecker
-    parser = argparse.ArgumentParser(description='OfflineSAC-runs')
+    parser = argparse.ArgumentParser(description='Offline_SAC-runs')
     parser.add_argument("--env", type=str, default='halfcheetah-random-v0')
     # training specs
     parser.add_argument("--max_path_length", type=int, default=1000)
@@ -136,8 +134,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_trains_per_train_loop", type=int, default=1000)
     parser.add_argument("--num_expl_steps_per_train_loop", type=int, default=1000)
     parser.add_argument("--min_num_steps_before_training", type=int, default=1000)
-    parser.add_argument('--pre_model', default='rapp', type=str)
-    parser.add_argument('--beta', default=1.0, type=float)
+
     parser.add_argument("--gpu", default='0', type=str)
     parser.add_argument('--qf_lr', default=3e-4, type=float)
     parser.add_argument('--policy_lr', default=1e-4, type=float)
@@ -145,7 +142,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     variant = dict(
-        algorithm="OfflineSAC",
+        algorithm="Offline_SAC",
         version="normal",
         layer_size=256,
         replay_buffer_size=int(1E6),
@@ -167,7 +164,6 @@ if __name__ == "__main__":
             qf_lr=3E-4,
             reward_scale=1,
             use_automatic_entropy_tuning=True,
-            beta=args.beta
         ),
     )
     setup_logger(exp_prefix='sac-' + args.env,
