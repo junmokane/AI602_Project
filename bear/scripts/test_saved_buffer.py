@@ -2,7 +2,7 @@ from rlkit.envs.read_hdf5 import get_dataset, qlearning_dataset
 import matplotlib.pyplot as plt
 import numpy as np
 
-file_path = './data/sac-point-robot/2021_01_04_22_25_16_exp_0000_s_0/offline_buffer_itr_140.hdf5'
+file_path = './data/sac-point-robot/2021_01_04_22_25_16_exp_0000_s_0/offline_buffer_itr_0.hdf5'
 # Read the saved replay buffer
 data_dict = get_dataset(file_path)
 # Run a few quick sanity checks
