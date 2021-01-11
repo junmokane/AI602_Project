@@ -25,9 +25,13 @@ walker_task_name = ['walker2d-random-v0',
 class GymDataset(Dataset):
     def __init__(self, env, ood_test, env_name):
         dataset = env.get_dataset()
-        all_obs = np.array(dataset['observations'])
 
+        # Normalize the observation and action space
+        all_obs = np.array(dataset['observations'])
+        all_obs = (all_obs - np.min(all_obs)) / (np.max(all_obs) - np.min(all_obs))
         all_act = np.array(dataset['actions'])
+        all_act = (all_act - np.min(all_act)) / (np.max(all_act) - np.min(all_act))
+
         N = all_obs.shape[0]
 
         _obs = all_obs[:N - 1]
@@ -84,8 +88,8 @@ class GymDataset(Dataset):
         # # Normalization
         # _rew = 2 * (_rew - np.min(_rew)) / (np.max(_rew) - np.min(_rew)) - 1
 
-        self.obs_act = np.concatenate([_obs, _actions], axis=1)
-        self.next_obs_act = np.concatenate([_next_obs, _next_actions], axis=1)
+        self.obs_act = np.concatenate([_obs, _actions], axis=1)[::500,:]
+        self.next_obs_act = np.concatenate([_next_obs, _next_actions], axis=1)[::500,:]
         self.rewards = _rew
         self.terminals = _done
 

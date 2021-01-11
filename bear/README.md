@@ -16,6 +16,11 @@ hammer-human : 72
 door-human : 67
 relocate : 69
 
+# 2021.01.10 D4RL Dataset Range(min,max)
+halfcheetah-expert-v0 : observation(-32.996246, 37.2738), action(-1.0, 1.0)
+walker2d-expert-v0 : observation(-10.0, 10.0), action(-1.0, 1.0)
+hopper-expert-v0 : observation(-10.0, 10.0), action(-1.0, 1.0)
+
 # 2021.01.04 point-robot
 For point-robot task, exp_id are as follows. (sac based) sac : 0, offline sac : 1, (bear based) bear : 0, uwac : 1, musat : 2
 ```
