@@ -8,11 +8,98 @@ from torch import nn as nn
 import rlkit.torch.pytorch_util as ptu
 from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.torch_rl_algorithm import TorchTrainer
+from rlkit.torch.networks import FlattenMlp_Dropout
+from uncertainty_modeling.rl_uncertainty.rank1.r1bnn import Model
+from uncertainty_modeling.rl_uncertainty.model import RegNetBase, SWAG, RaPP, get_diffs
+
+
+def unc_premodel(env, env_name, model_name):
+    path = './uncertainty_modeling/rl_uncertainty'
+    obs_dim = env.observation_space.low.size
+    action_dim = env.action_space.low.size
+    input_size = obs_dim + action_dim
+    model = None
+    if model_name == 'mc_dropout':
+        model = FlattenMlp_Dropout(  # Check the dropout layer!
+            input_size=input_size,
+            output_size=1,
+            hidden_sizes=[256, 256],
+        ).cuda()
+    if model_name == 'rank1':
+        model = Model(x_dim=input_size, h_dim=10, y_dim=1, n=10).cuda()
+    if model_name == 'rapp':
+        model = RaPP(input_size).cuda()
+    if model_name == 'swag':
+        kwargs = {"dimensions": [200, 50, 50, 50],
+                  "output_dim": 1,
+                  "input_dim": input_size}
+        args = list()
+        model = SWAG(RegNetBase, subspace_type="pca", *args, **kwargs,
+                     subspace_kwargs={"max_rank": 10, "pca_rank": 10})
+        model.cuda()
+    if model == None:
+        raise AttributeError
+    else:
+        model.load_state_dict(torch.load('{}/{}/model/{}/model_1980.pt'.format(path, model_name, env_name)))
+
+        return model
+
+
+def uncertainty(state, action, rep, beta, pre_model, pre_model_name):
+    with torch.no_grad():
+        batch_size = state.shape[0]
+
+        if pre_model_name == 'rapp':
+            dif = get_diffs(torch.cat([state, action], dim=1), pre_model)
+            difs = torch.cat([torch.from_numpy(i) for i in dif], dim=-1).cuda()
+            dif = (difs ** 2).mean(axis=1)
+            unc = beta / dif  # B
+            unc = unc.unsqueeze(1) # Bx1
+            # TODO: clipping on uncertainty
+            # unc_critic = torch.clamp(unc, 0.0, 1.5)
+            unc_critic = unc
+            return unc_critic
+
+        if pre_model_name == 'rank1':
+           rep = rep // pre_model.n
+
+        if pre_model_name == 'swag':
+            temp = []
+            for i in range(rep):
+                pre_model.sample(scale=10.)
+                target_qf1 = pre_model(torch.cat([state, action], dim=1))  # BTx1
+                temp.append(target_qf1)
+            target_qf1 = torch.cat(temp, dim=0)
+        else:
+            state_cp = state.unsqueeze(1).repeat(1, rep, 1).view(state.shape[0] * rep, state.shape[1])
+            action_cp = action.unsqueeze(1).repeat(1, rep, 1).view(action.shape[0] * rep, action.shape[1])
+            target_qf1 = pre_model(torch.cat([state_cp, action_cp], dim=1))  # BTx1
+
+        if pre_model_name == 'rank1':
+            rep = rep * pre_model.n
+            target_qf1 = target_qf1.view(rep, batch_size, 1)  # BxTx1
+
+            q_sq = torch.mean(target_qf1 ** 2, dim=0)  # Bx1
+            q_mean_sq = torch.mean(target_qf1, dim=0) ** 2  # Bx1
+        else:
+            target_qf1 = target_qf1.view(batch_size, rep, 1)  # BxTx1
+
+            q_sq = torch.mean(target_qf1 ** 2, dim=1)  # Bx1
+            q_mean_sq = torch.mean(target_qf1, dim=1) ** 2  # Bx1
+
+        # var = torch.std(target_qf1, dim=1)
+        var = q_sq - q_mean_sq
+        unc = beta / var  # Bx1
+        # TODO: clipping on uncertainty
+        unc_critic = torch.clamp(unc, 0.0, 1.5)
+    return unc_critic
 
 
 class SACTrainer(TorchTrainer):
     def __init__(
             self,
+            pre_model,
+            env_name,
             env,
             policy,
             qf1,
@@ -34,6 +121,7 @@ class SACTrainer(TorchTrainer):
 
             use_automatic_entropy_tuning=True,
             target_entropy=None,
+            beta = 1
     ):
         super().__init__()
         self.env = env
@@ -44,6 +132,9 @@ class SACTrainer(TorchTrainer):
         self.target_qf2 = target_qf2
         self.soft_target_tau = soft_target_tau
         self.target_update_period = target_update_period
+
+        self.T = 100
+        self.beta = beta
 
         self.use_automatic_entropy_tuning = use_automatic_entropy_tuning
         if self.use_automatic_entropy_tuning:
@@ -83,6 +174,8 @@ class SACTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
 
         self.discrete = False
+        self.pre_model_name = pre_model
+        self.pre_model = unc_premodel(self.env, env_name, pre_model)
 
     def train_from_torch(self, batch):
         rewards = batch['rewards']
@@ -90,6 +183,14 @@ class SACTrainer(TorchTrainer):
         obs = batch['observations']
         actions = batch['actions']
         next_obs = batch['next_observations']
+
+        # print uncertainty
+
+        critic_unc = uncertainty(obs, actions, self.T, self.beta, self.pre_model, self.pre_model_name)
+
+        print(critic_unc)
+
+        exit()
 
         """
         Policy and Alpha Loss
