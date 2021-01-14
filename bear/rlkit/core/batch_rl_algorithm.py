@@ -109,6 +109,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
 
     def _train(self):
         if self.min_num_steps_before_training > 0 and not self.batch_rl:
+            print('here!1')
             init_expl_paths = self.expl_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.min_num_steps_before_training,
@@ -142,6 +143,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
             for _ in range(self.num_train_loops_per_epoch):
                 if not self.batch_rl:
                     # Sample new paths only if not doing batch rl
+                    print('here!2')
                     new_expl_paths = self.expl_data_collector.collect_new_paths(
                         self.max_path_length,
                         self.num_expl_steps_per_train_loop,

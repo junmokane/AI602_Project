@@ -29,7 +29,7 @@ def simulate_policy(args):
             env,
             policy,
             max_path_length=args.H,
-            render=False,
+            render=True,
         )
         if hasattr(env, "log_diagnostics"):
             env.log_diagnostics([path])
@@ -42,7 +42,7 @@ if __name__ == "__main__":
                         help='path to the snapshot file')
     parser.add_argument('--H', type=int, default=1000,
                         help='Max length of rollout')
-    parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--gpu', action='store_false')
     args = parser.parse_args()
     print(args)
     simulate_policy(args)

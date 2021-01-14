@@ -10,7 +10,7 @@ from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic
-from rlkit.torch.sac.sac_uncertainty import SACTrainer
+from rlkit.torch.sac.sac_constant import SACTrainer
 from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from rlkit.envs.read_hdf5 import get_dataset
@@ -90,6 +90,10 @@ def experiment(variant):
         expl_env,
         policy,
     )
+    replay_buffer = EnvReplayBuffer(
+        variant['replay_buffer_size'],
+        expl_env,
+    )
 
     replay_buffer = EnvReplayBuffer(
         variant['replay_buffer_size'],
@@ -143,6 +147,7 @@ if __name__ == "__main__":
     parser.add_argument('--pre_model', default='rapp', type=str)
     parser.add_argument('--policy_eval_start', type=int, default=40000)
     parser.add_argument('--beta', type=float, default=1.0)
+    parser.add_argument('--sub_q', type=str, default='mean')
     args = parser.parse_args()
 
     variant = dict(

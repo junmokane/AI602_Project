@@ -90,6 +90,7 @@ class SACTrainer(TorchTrainer):
             target_entropy=None,
             policy_eval_start=0,
             beta=1.0,
+            sub_q = 'mean',
     ):
         super().__init__()
         self.env = env
@@ -144,18 +145,30 @@ class SACTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
 
         self.discrete = False
+
         self.pre_model_name = pre_model
         self.pre_model = unc_premodel(self.env, env_name, pre_model)
 
-        # Normalize the observation and action space
         self.dataset = env.get_dataset()
         all_obs = torch.tensor(self.dataset['observations'])
         all_act = torch.tensor(self.dataset['actions'])
+
         self.min_obs = torch.min(all_obs)
         self.max_obs = torch.max(all_obs)
         self.min_act = torch.min(all_act)
         self.max_act = torch.max(all_act)
 
+        all_obs, all_act = self.normalize_state_action(all_obs, all_act)
+
+
+        score = uncertainty(all_obs, all_act, self.pre_model, self.pre_model_name)
+
+        if sub_q == 'mean':
+            self.q_const = torch.mean(score)
+        elif sub_q == 'max':
+            self.q_const = torch.max(score)
+        else:
+            raise ValueError
 
     def normalize_state_action(self, state, action):
         state = (state - self.min_obs) / (self.max_obs - self.min_obs)
@@ -195,8 +208,7 @@ class SACTrainer(TorchTrainer):
             self.qf2(obs, new_obs_actions),
         )
         # policy uncertainty
-        norm_obs, norm_new_obs_actions = self.normalize_state_action(obs, new_obs_actions)
-        policy_unc = uncertainty(norm_obs, norm_new_obs_actions, self.pre_model, self.pre_model_name)[..., None].detach()
+        policy_unc = self.q_const
         policy_loss = (alpha * log_pi - (q_new_actions - self.beta * policy_unc)).mean()
         if self._current_epoch < self.policy_eval_start:
             policy_log_prob = self.policy.log_prob(obs, actions)
@@ -216,8 +228,7 @@ class SACTrainer(TorchTrainer):
             self.target_qf2(next_obs, new_next_actions),
         ) - alpha * new_log_pi
         # critic uncertainty
-        norm_next_obs, norm_new_next_actions = self.normalize_state_action(next_obs, new_next_actions)
-        critic_unc = uncertainty(norm_next_obs, norm_new_next_actions, self.pre_model, self.pre_model_name)[..., None]
+        critic_unc = self.q_const
         target_q_values = target_q_values - self.beta * critic_unc
         q_target = self.reward_scale * rewards + (1. - terminals) * self.discount * target_q_values
         qf1_loss = self.qf_criterion(q1_pred, q_target.detach())

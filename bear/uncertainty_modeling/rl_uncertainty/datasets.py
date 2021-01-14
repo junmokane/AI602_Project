@@ -88,8 +88,8 @@ class GymDataset(Dataset):
         # # Normalization
         # _rew = 2 * (_rew - np.min(_rew)) / (np.max(_rew) - np.min(_rew)) - 1
 
-        self.obs_act = np.concatenate([_obs, _actions], axis=1)[::500,:]
-        self.next_obs_act = np.concatenate([_next_obs, _next_actions], axis=1)[::500,:]
+        self.obs_act = np.concatenate([_obs, _actions], axis=1) # [::500,:]
+        self.next_obs_act = np.concatenate([_next_obs, _next_actions], axis=1) # [::500,:]
         self.rewards = _rew
         self.terminals = _done
 

@@ -92,84 +92,64 @@ def qlearning_dataset(dataset):
     }
 
 
-# file_path = '/home/user/Documents/Workspace-Changyeop/Workspace/AdvancedDL/AI602_Project/bear/online_buffer.hdf5' # offline_buffer_itr_140
-# file_path2 = '/home/user/Documents/Workspace-Changyeop/Workspace/AdvancedDL/AI602_Project/bear/offline_buffer_itr_140.hdf5' # offline_buffer_itr_140
-# # Read the saved replay buffer
-# data_dict = get_dataset(file_path)
-# data_dict2 = get_dataset(file_path2)
-#
-# print(data_dict['observations'].shape)
-# print(data_dict['actions'].shape)
+file_path = '/home/user/Documents/Workspace-Changyeop/Workspace/AdvancedDL/AI602_Project/bear/online_buffer.hdf5' # offline_buffer_itr_140
+file_path2 = '/home/user/Documents/Workspace-Changyeop/Workspace/AdvancedDL/AI602_Project/bear/offline_buffer_itr_140.hdf5' # offline_buffer_itr_140
+# Read the saved replay buffer
+data_dict = get_dataset(file_path)
+data_dict2 = get_dataset(file_path2)
+
+print(data_dict['observations'].shape)
+print(data_dict['actions'].shape)
 # feature_sub = np.hstack([data_dict['observations'][::10], data_dict['actions'][::10]]) #
 # feature_sub2 = np.hstack([data_dict2['observations'][::10], data_dict2['actions'][::10]])
-# print(np.max(data_dict['observations']))
-# print(np.min(data_dict['observations']))
-# print(np.max(data_dict['actions']))
-# print(np.min(data_dict['actions']))
-#
-# a = np.linspace(0, 1, 7)
-# b = np.linspace(0, 1, 7)
-# c = np.linspace(0, 1, 7)
-# d = np.linspace(0, 1, 7)
-# av, bv, cv, dv = np.meshgrid(a,b,c,d)
-#
-# meshgrid_data = torch.from_numpy(np.stack([av,bv,cv,dv], axis=-1))
-# meshgrid_data = np.reshape(meshgrid_data, [-1, 4])
+feature_sub = np.hstack([data_dict['observations'], data_dict['actions']]) #
+feature_sub2 = np.hstack([data_dict2['observations'], data_dict2['actions']])
+print(np.max(data_dict['observations']))
+print(np.min(data_dict['observations']))
+print(np.max(data_dict['actions']))
+print(np.min(data_dict['actions']))
 
-env_expert = gym.make('halfcheetah-expert-v0')
-env_medium = gym.make('halfcheetah-random-v0')
+a = np.linspace(0, 1, 7)
+b = np.linspace(0, 1, 7)
+c = np.linspace(0, 1, 7)
+d = np.linspace(0, 1, 7)
+av, bv, cv, dv = np.meshgrid(a,b,c,d)
 
-expert_data = env_expert.get_dataset()
-medium_data = env_medium.get_dataset()
-
-expert_obs = np.array(expert_data['observations'])
-expert_obs = (expert_obs - np.min(expert_obs)) / (np.max(expert_obs) - np.min(expert_obs))
-expert_act = np.array(expert_data['actions'])
-expert_act = (expert_act - np.min(expert_act)) / (np.max(expert_act) - np.min(expert_act))
-
-medium_obs = np.array(medium_data['observations'])
-medium_obs = (medium_obs - np.min(medium_obs)) / (np.max(medium_obs) - np.min(medium_obs))
-medium_act = np.array(medium_data['actions'])
-medium_act = (medium_act - np.min(medium_act)) / (np.max(medium_act) - np.min(medium_act))
-
-expert_data = np.concatenate([expert_obs, expert_act], axis=-1)
-medium_data = np.concatenate([medium_obs, medium_act], axis=-1)
-
-print(expert_data.shape)
+meshgrid_data = torch.from_numpy(np.stack([av,bv,cv,dv], axis=-1))
+meshgrid_data = np.reshape(meshgrid_data, [-1, 4])
 
 
-model = RaPP(23).cuda()
+model = RaPP(4).cuda()
 
-model.load_state_dict(torch.load("/home/user/Documents/Workspace-Changyeop/Workspace/AdvancedDL/AI602_Project/bear/uncertainty_modeling/rl_uncertainty/rapp/model/halfcheetah-expert-v0/model_1980.pt"))  # if not handling ensemble
+model.load_state_dict(torch.load("/home/user/Documents/Workspace-Changyeop/Workspace/AdvancedDL/AI602_Project/bear/uncertainty_modeling/rl_uncertainty/rapp/model/point-robot/model_1980.pt"))  # if not handling ensemble
 
 # id_dif = get_diffs(meshgrid_data, model)
-id_dif = get_diffs(torch.from_numpy(expert_data), model)
+id_dif = get_diffs(torch.from_numpy(feature_sub2), model)
 
 
 id_difs = torch.cat([torch.from_numpy(i) for i in id_dif], dim=-1).numpy()
 id_dif = (id_difs**2).mean(axis=1)
 
+print(np.mean(id_dif), np.max(id_dif), np.min(id_dif))
 
-print('mean, max, min : {}, {}, {}'.format(np.mean(id_dif), np.max(id_dif), np.min(id_dif)))
-
-exit()
-
-# feature = np.vstack([feature_sub, feature_sub2, meshgrid_data])
-feature = np.vstack([expert_data, medium_data])
-
-model = TSNE(learning_rate=10)
-transformed = model.fit_transform(feature)
-
-
-xs = transformed[:,0]
-ys = transformed[:,1]
-
-# plt.scatter(xs[1600:3200],ys[1600:3200],color="g")
-plt.scatter(xs[:2000],ys[:2000],color="g")
-import seaborn as sns
-cmap = sns.diverging_palette(240, 10, l=65, center="dark", as_cmap=True)
-vmin= np.min(id_dif)
-vmax= np.max(id_dif)
-sc = plt.scatter(xs[2000:],ys[2000:], c=id_dif,vmin=vmin, vmax=vmax, cmap=cmap)
-plt.colorbar(sc)
-plt.show()
+#
+#
+# # feature = np.vstack([feature_sub, feature_sub2, meshgrid_data])
+# feature = np.vstack([expert_data, medium_data])
+#
+# model = TSNE(learning_rate=10)
+# transformed = model.fit_transform(feature)
+#
+#
+# xs = transformed[:,0]
+# ys = transformed[:,1]
+#
+# # plt.scatter(xs[1600:3200],ys[1600:3200],color="g")
+# plt.scatter(xs[:2000],ys[:2000],color="g")
+# import seaborn as sns
+# cmap = sns.diverging_palette(240, 10, l=65, center="dark", as_cmap=True)
+# vmin= np.min(id_dif)
+# vmax= np.max(id_dif)
+# sc = plt.scatter(xs[2000:],ys[2000:], c=id_dif,vmin=vmin, vmax=vmax, cmap=cmap)
+# plt.colorbar(sc)
+# plt.show()
